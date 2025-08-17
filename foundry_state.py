@@ -450,7 +450,9 @@ class Chassis:
         self.show_model = True
         self.show_sn = True
         self.hide_multi_curve_dialog = False  # User preference for multi-curve dialog
-        self.chassis_orientation = "normal"  # "normal" or "inverted"
+    # Preferences
+    self.chassis_orientation = "normal"  # "normal" or "inverted"
+    self.units = "C"  # Temperature units: "C" for Celsius, "F" for Fahrenheit
 
         if config_file:
             self._load_config()
@@ -475,6 +477,7 @@ class Chassis:
             self.show_sn = options.get("show_sn", True)
             self.hide_multi_curve_dialog = options.get("hide_multi_curve_dialog", False)
             self.chassis_orientation = options.get("chassis_orientation", "normal")
+            self.units = options.get("units", "C")
 
             # Ensure we have the right number of backplane slots
             while len(backplanes_data) < self.MAX_BACKPLANES:
@@ -530,9 +533,20 @@ class Chassis:
         """Return model display option."""
         return self.show_sn
 
+    def set_units(self, units: str) -> None:
+        """Set temperature units (C or F)."""
+        if units not in ["C", "F"]:
+            raise ValueError("Units must be 'C' for Celsius or 'F' for Fahrenheit")
+        self.units = units
+        self.save_config()
+
+    def get_units(self) -> str:
+        """Get temperature units."""
+        return self.units
+
     def get_chassis_orientation(self) -> str:
         """Get chassis orientation setting."""
-        return self.chassis_orientation
+        return getattr(self, 'chassis_orientation', 'normal')
 
     def set_chassis_orientation(self, orientation: str) -> None:
         """Set chassis orientation setting."""
@@ -624,11 +638,12 @@ class Chassis:
                 "product": self.product,
                 "backplanes": [bp.to_json() if bp is not None else None for bp in self.backplanes],
                 "options": {
-                    "show_model": self.show_model,
-                    "show_sn": self.show_sn,
-                    "hide_multi_curve_dialog": self.hide_multi_curve_dialog,
-                    "chassis_orientation": self.chassis_orientation
-                }
+                        "show_model": self.show_model,
+                        "show_sn": self.show_sn,
+                        "hide_multi_curve_dialog": self.hide_multi_curve_dialog,
+                        "chassis_orientation": self.chassis_orientation,
+                        "units": self.units
+                    }
             }
 
             # Ensure config directory exists

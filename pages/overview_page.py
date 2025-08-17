@@ -33,7 +33,7 @@ class DriveButton(ui.button):
                     self.text_color = "gray"
                 else:
                     self.assigned_drive: Drive = globals.drivesList.get(drive_hash)
-                    self.temp_label = ui.label().bind_text_from(self.assigned_drive, 'temp', lambda temp: f"{temp}°C").classes('flex-shrink-0')
+                    self.temp_label = ui.label().bind_text_from(self.assigned_drive, 'temp', lambda temp: globals.format_temperature(temp)).classes('flex-shrink-0')
                     self.model_label_text = self.assigned_drive.model
                     self.sn_label_text = self.assigned_drive.serial_num
                     self.text_color = "white"
@@ -57,8 +57,8 @@ class DriveButton(ui.button):
             self.sn_label.style('color: white')
             self.sn_label.set_text(self.assigned_drive.serial_num)
         self.temp_label.set_visibility(True)
-        self.temp_label.style('color: white')
-        self.temp_label.bind_text_from(self.assigned_drive, 'temp', lambda temp: f"{temp}°C")
+    self.temp_label.style('color: white')
+    self.temp_label.bind_text_from(self.assigned_drive, 'temp', lambda temp: globals.format_temperature(temp))
 
     async def clear_drive(self):
         """Remove the assigned drive from this button."""
@@ -450,7 +450,7 @@ class SystemOverview:
                         def update_temp(sensor_name=curve.sensor, label=temp_label):
                             try:
                                 current_temp = globals.fan_profile_service.get_sensor_temperature(sensor_name) if globals.fan_profile_service else None
-                                temp_display = f"{current_temp:.1f}°C" if current_temp is not None else "N/A"
+                                temp_display = globals.format_temperature(current_temp) if current_temp is not None else "N/A"
                                 label.set_text(temp_display)
                             except Exception as e:
                                 label.set_text("Error")
@@ -761,7 +761,7 @@ class SystemOverview:
                 {'attribute': 'Rotation Speed', 'value': d.rotate_rate},
                 {'attribute': 'Power On Time', 'value': d.on_time},
                 {'attribute': 'Start Stop Count', 'value': d.power_cycle},
-                {'attribute': 'Temp', 'value': d.temp}
+                {'attribute': 'Temp', 'value': globals.format_temperature(d.temp)}
             ]
 
             with ui.item().props('clickable v-ripple').classes('w-full bg-[#ffdd00]').on(
@@ -971,7 +971,6 @@ class SystemOverview:
             else:
                 # Fallback to original logic
                 show_standard_options = (card_class == StdPlaceHolderCard)
-
         with card.style(f'{element_justified}'):
             with FadingDropdown('Add Backplane', icon='add').menu:
                 if show_standard_options:
