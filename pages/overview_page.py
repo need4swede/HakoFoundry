@@ -56,9 +56,9 @@ class DriveButton(ui.button):
             self.sn_label.set_visibility(True)
             self.sn_label.style('color: white')
             self.sn_label.set_text(self.assigned_drive.serial_num)
-        self.temp_label.set_visibility(True)
-        self.temp_label.style('color: white')
-        self.temp_label.bind_text_from(self.assigned_drive, 'temp', lambda temp: globals.format_temperature(temp))
+            self.temp_label.set_visibility(True)
+            self.temp_label.style('color: white')
+            self.temp_label.bind_text_from(self.assigned_drive, 'temp', lambda temp: globals.format_temperature(temp))
 
     async def clear_drive(self):
         """Remove the assigned drive from this button."""
