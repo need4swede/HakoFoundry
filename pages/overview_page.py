@@ -838,6 +838,17 @@ class SystemOverview:
         if (card.tabsRight == False): # If even, 2nd row, use other cage orientation
             cage = "-rotated"
 
+        # Get chassis orientation to determine button order for SML2+2
+        orientation = globals.layoutState.get_chassis_orientation()
+
+        # Configure button order for SML2+2 based on orientation
+        if orientation == "inverted":
+            # Inverted: SSD buttons on top (positions 0,1), HDD buttons on bottom (positions 2,3)
+            sml_button_order = [SmlSSDButton, SmlSSDButton, HDDButton, HDDButton]
+        else:
+            # Normal: HDD buttons on top (positions 0,1), SSD buttons on bottom (positions 2,3)
+            sml_button_order = [HDDButton, HDDButton, SmlSSDButton, SmlSSDButton]
+
         backplane_configs = {
             "STD4HDD": {
                 "buttons": 4,
@@ -851,7 +862,7 @@ class SystemOverview:
             },
             "SML2+2": {
                 "buttons": 4,
-                "button_class": [HDDButton, HDDButton, SmlSSDButton, SmlSSDButton],
+                "button_class": sml_button_order,
                 "layout": "mixed"
             }
         }
@@ -901,7 +912,7 @@ class SystemOverview:
                             button = button_class(card, i, backplane.drives_hashes[i])
                             button.on_click_handler = self.select_drive
                             button.on('click', lambda b=button: self.select_drive(b))
-                            if i >= 2:  # SSD buttons
+                            if button_class == SmlSSDButton:  # SSD buttons
                                 button.props('no-wrap')
                             else: # HDD buttons
                                 button.style('height: 28%;')
