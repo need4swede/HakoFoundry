@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Interactive script to generate docker-compose.yml with dynamic device discovery
-# Usage: ./setup.sh
+# Usage: ./generate-compose.sh
 
 OUTPUT_FILE="docker-compose.yml"
 BACKUP_FILE="docker-compose.yml.backup"
@@ -135,8 +135,38 @@ HOST_PORT=${HOST_PORT:-8080}
 echo "Will expose on port: $HOST_PORT"
 echo ""
 
-# 4. Ask about open access
-echo -e "${GREEN}4. Security Configuration${NC}"
+# 4. Ask about user/group configuration
+echo -e "${GREEN}4. User/Group Configuration${NC}"
+echo "Configure user and group IDs for file permissions:"
+echo "  - Set PUID/PGID: Run container with specific user/group (recommended for file access)"
+echo "  - Skip: Use container defaults (simpler but may cause permission issues)"
+echo ""
+
+USE_USER_CONFIG="false"
+PUID=""
+PGID=""
+
+if ask_yes_no "Configure user and group IDs (PUID/PGID)?" "y"; then
+    USE_USER_CONFIG="true"
+    echo ""
+    echo "Current user ID: $(id -u)"
+    echo "Current group ID: $(id -g)"
+    echo ""
+
+    read -p "Enter PUID [$(id -u)]: " PUID
+    PUID=${PUID:-$(id -u)}
+
+    read -p "Enter PGID [$(id -g)]: " PGID
+    PGID=${PGID:-$(id -g)}
+
+    echo "Will use PUID=$PUID, PGID=$PGID"
+else
+    echo "Will use container default user/group"
+fi
+echo ""
+
+# 5. Ask about open access
+echo -e "${GREEN}5. Security Configuration${NC}"
 echo "Open Access allows unrestricted access to the web interface."
 echo "  - true: No authentication required (convenient but less secure)"
 echo "  - false: Authentication required (more secure)"
@@ -149,8 +179,8 @@ fi
 echo "Open access: $OPEN_ACCESS"
 echo ""
 
-# 5. Ask about auto-scanning drives
-echo -e "${GREEN}5. Device Configuration${NC}"
+# 6. Ask about auto-scanning drives
+echo -e "${GREEN}6. Device Configuration${NC}"
 echo "Auto-scan will automatically detect and add all available storage devices."
 echo "This includes all /dev/sd* devices and serial ports (/dev/ttyACM*, /dev/ttyUSB*)."
 echo ""
@@ -193,7 +223,7 @@ if ask_yes_no "Auto-scan for storage devices and serial ports?" "y"; then
 fi
 echo ""
 
-echo -e "${GREEN}6. Generating docker-compose.yml...${NC}"
+echo -e "${GREEN}7. Generating docker-compose.yml...${NC}"
 
 # Generate the compose file header
 cat > "$OUTPUT_FILE" << EOF
@@ -214,8 +244,17 @@ services:
     environment:
       - OPEN_ACCESS=$OPEN_ACCESS
       - SECRET=$SECRET
-      - PUID=36043
-      - PGID=36043
+EOF
+
+# Add PUID/PGID only if configured
+if [ "$USE_USER_CONFIG" = "true" ]; then
+    cat >> "$OUTPUT_FILE" << EOF
+      - PUID=$PUID
+      - PGID=$PGID
+EOF
+fi
+
+cat >> "$OUTPUT_FILE" << EOF
 
     # Volumes
     volumes:
@@ -273,6 +312,11 @@ echo -e "${BLUE}Configuration Summary:${NC}"
 echo "  Secret: $SECRET"
 echo "  Storage: $STORAGE_TYPE ($STORAGE_VALUE)"
 echo "  Port: $HOST_PORT"
+if [ "$USE_USER_CONFIG" = "true" ]; then
+    echo "  User/Group: PUID=$PUID, PGID=$PGID"
+else
+    echo "  User/Group: Container defaults"
+fi
 echo "  Open Access: $OPEN_ACCESS"
 echo "  Device Auto-scan: $AUTOSCAN"
 if [ "$AUTOSCAN" = "true" ]; then
