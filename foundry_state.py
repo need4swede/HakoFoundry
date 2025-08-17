@@ -450,9 +450,9 @@ class Chassis:
         self.show_model = True
         self.show_sn = True
         self.hide_multi_curve_dialog = False  # User preference for multi-curve dialog
-    # Preferences
-    self.chassis_orientation = "normal"  # "normal" or "inverted"
-    self.units = "C"  # Temperature units: "C" for Celsius, "F" for Fahrenheit
+        # Preferences
+        self.chassis_orientation = "normal"  # "normal" or "inverted"
+        self.units = "C"  # Temperature units: "C" for Celsius, "F" for Fahrenheit
 
         if config_file:
             self._load_config()
