@@ -9,19 +9,19 @@ import globals
 
 class DriveButton(ui.button):
     """Custom button class used to select and display drives.
-    
+
     When a drive button is clicked, it gives the option to assign a drive if there is none.
-    Once assigned, clicking on the drive will display basic data on the right drawer. 
+    Once assigned, clicking on the drive will display basic data on the right drawer.
     Clicking VIEW ALL will pop up a window with raw smartctl data values if there are any.
     Each button is a child of a card element that represents a backplane.
     """
-    
+
     def __init__(self, card, button_index, drive_hash) -> None:
         super().__init__()
         self.selected = False
         self.card = card
         self.button_index = button_index
-        
+
         with self:
             with ui.row().classes('items-center gap-2 w-full overflow-hidden') as self.row_element:
                 if drive_hash is None or drive_hash not in globals.drivesList:
@@ -59,7 +59,7 @@ class DriveButton(ui.button):
         self.temp_label.set_visibility(True)
         self.temp_label.style('color: white')
         self.temp_label.bind_text_from(self.assigned_drive, 'temp', lambda temp: f"{temp}°C")
-            
+
     async def clear_drive(self):
         """Remove the assigned drive from this button."""
         globals.layoutState.remove_drive(self.card, self.assigned_drive.hash)
@@ -74,7 +74,7 @@ class DriveButton(ui.button):
 
 class HDDButton(DriveButton):
     """Button styled for HDD drives."""
-    
+
     def __init__(self, card, button_index, drive_hash) -> None:
         super().__init__(card, button_index, drive_hash)
         self.props('flat color="white" size="11px"').classes(
@@ -96,7 +96,7 @@ class HDDButton(DriveButton):
 
 class SmlSSDButton(DriveButton):
     """Button styled for small SSD drives."""
-    
+
     def __init__(self, card, button_index, drive_hash) -> None:
         super().__init__(card, button_index, drive_hash)
         self.props('flat color="white" align="left" size="11px"').classes(
@@ -114,11 +114,11 @@ class SmlSSDButton(DriveButton):
             if globals.layoutState.show_model == False and self.assigned_drive != None:
                 self.model_label.set_visibility(False)
             if globals.layoutState.show_sn == False or self.assigned_drive is None:
-                self.sn_label.set_visibility(False) 
+                self.sn_label.set_visibility(False)
 
 class StdSSDButton(DriveButton):
     """Button styled for standard SSD drives."""
-    
+
     def __init__(self, card, button_index, drive_hash) -> None:
         super().__init__(card, button_index, drive_hash)
         self.props('flat color="white" size="11px"').classes(
@@ -136,11 +136,11 @@ class StdSSDButton(DriveButton):
             if globals.layoutState.show_model == False and self.assigned_drive != None:
                 self.model_label.set_visibility(False)
             if globals.layoutState.show_sn == False or self.assigned_drive is None:
-                self.sn_label.set_visibility(False) 
+                self.sn_label.set_visibility(False)
 
 class FansRowButton(ui.button):
     """Button for fan row controls."""
-    
+
     def __init__(self) -> None:
         super().__init__()
         self.selected = False
@@ -166,7 +166,7 @@ class FanRowButtons(ui.element):
 
 class RPMCard(ui.element):
     """Button for fan row controls."""
-    
+
     def __init__(self, index) -> None:
         super().__init__('div')
 
@@ -184,7 +184,7 @@ class RPMCard(ui.element):
 
 class WattageCard(ui.element):
     """Card to show wattage info from powerboard."""
-    
+
     def __init__(self, index) -> None:
         super().__init__('div')
         with self.classes('col-span-3 px-1 p-1 flex content-center justify-center items-center w-full border-solid border-white rounded-md border-2 bg-neutral-900'):
@@ -208,7 +208,7 @@ class WattageCard(ui.element):
 
 class StdPlaceHolderCard(ui.element):
     """Standard size card representing standard backplanes."""
-    
+
     def __init__(self, index, backplane: Backplane) -> None:
         super().__init__('div')
         self.index = index
@@ -231,7 +231,7 @@ class StdPlaceHolderCard(ui.element):
 
 class SmlPlaceHolderCard(ui.element):
     """Small size card representing small backplanes."""
-    
+
     def __init__(self, index, backplane) -> None:
         super().__init__('div')
         self.index = index
@@ -273,10 +273,10 @@ class FadingDropdown(ui.element):
         """
         # 2. We call the parent constructor, defining this component AS a 'div'.
         super().__init__('div')
-        
+
         # 'self' is now the container div. We apply the initial classes to it.
         self.classes(container_classes).style(f'width: 87%;')
-        
+
         self.is_visible = False
         self.hide_timer: Optional[ui.timer] = None
 
@@ -285,7 +285,7 @@ class FadingDropdown(ui.element):
             # 4. We manually construct the button and menu for full control.
             self.button = ui.button(text, color=button_color, icon=icon).props('outline color="white"')
             self.button.classes('opacity-0 transition-opacity duration-300').style('visibility: hidden;')
-            
+
             with self.button:
                 self.menu = ui.menu().props('fit')
 
@@ -325,7 +325,7 @@ class FadingDropdown(ui.element):
 
 class SystemOverview:
     """Main class to handle the system overview page functionality."""
-    
+
     def __init__(self):
         """Initialize the SystemOverview with all necessary state variables."""
         # Global state variables
@@ -335,10 +335,10 @@ class SystemOverview:
         self.last_button = None
         self.right_drawer = None
         self.fan_change_dialog = None
-        
+
         # Use the global fan control service instance
         self.fan_control_service = globals.fan_control_service
-        
+
         # Ensure the fan control service is initialized
         if self.fan_control_service is None:
             print("Warning: Fan control service not initialized, initializing now...")
@@ -407,45 +407,45 @@ class SystemOverview:
             self.right_drawer.hide()
             self.last_button = None
             return
-        else:  # Last button was a drive 
+        else:  # Last button was a drive
             self.toggle_drive_buttons(self.last_button)
             await self.toggle_fan_buttons()
             self.last_button = button
-        
+
         self.setup_fan_drawer()
 
     def display_profile_sensors(self, profile_name: str, container_classes: str = ''):
         """Display temperature sensors and their current values for a given profile."""
         if not globals.fan_profile_service:
             return
-            
+
         profile = globals.fan_profile_service.get_profile_by_name(profile_name)
         if not profile:
             return
-            
+
         # Get all curves from the profile
         curves = profile.get_all_curves()
         sensors_displayed = set()  # Track which sensors we've already displayed
-        
+
         # Helper function to format sensor display names
         def format_sensor_display_name(sensor_name):
             """Format sensor name for display (remove 'Drives.' prefix for cleaner display)."""
             if sensor_name.startswith('Drives.'):
                 return sensor_name[7:]  # Remove "Drives." prefix for display
             return sensor_name
-        
+
         for curve_id, curve in curves.items():
             if curve.sensor and curve.sensor not in sensors_displayed:
                 sensors_displayed.add(curve.sensor)
-                
+
                 # Display sensor info with dynamically updating temperature
                 with ui.element('div').classes(container_classes):
                     with ui.row().classes('w-full items-center justify-between text-sm text-gray-300'):
                         ui.label(f"{format_sensor_display_name(curve.sensor)}").classes('flex-grow')
-                        
+
                         # Create a label that updates dynamically
                         temp_label = ui.label("N/A").classes('font-mono')
-                        
+
                         # Function to update temperature
                         def update_temp(sensor_name=curve.sensor, label=temp_label):
                             try:
@@ -454,13 +454,13 @@ class SystemOverview:
                                 label.set_text(temp_display)
                             except Exception as e:
                                 label.set_text("Error")
-                        
+
                         # Initial update
                         update_temp()
-                        
+
                         # Set up timer to update every 3 seconds
                         ui.timer(3.0, update_temp)
-        
+
         # If no sensors were displayed (all curves have no sensors assigned), show "No sensors" message
         if not sensors_displayed:
             with ui.element('div').classes(container_classes):
@@ -477,10 +477,10 @@ class SystemOverview:
                 with ui.row().classes('w-full justify-center p-12'):
                     ui.label('No powerboards detected.').classes('text-gray-500 italic')
                 return
-                
+
             # Get available fan profiles
             profile_options = self.fan_control_service.get_fan_profile_options()
-            
+
             if 1 in globals.powerboardDict:  # Display fan speeds
                 # Get current fan wall states
                 wall_1 = self.fan_control_service.fan_walls.get(1)
@@ -491,7 +491,7 @@ class SystemOverview:
                 with ui.row().classes('w-full items-center justify-between px-5 mt-5'):
                     ui.label('Fan Wall 1').tooltip('Hidden fan header hidden under first powerboard.')
                     manual_checkbox_1 = ui.checkbox('Manual', value=wall_1.manual).classes('text-sm')
-                
+
                 with ui.element('div').classes('px-5 pt-4 w-full'):
                     self.slider_list[0] = ui.slider(
                         min=20, max=100
@@ -509,51 +509,51 @@ class SystemOverview:
                     ).classes('w-full')
 
                     profile_select_1.set_enabled(not (wall_1.manual if wall_1 else True))  # Enabled based on manual state
-                
+
                 # Hide/show profile container based on manual state
                 if wall_1 and wall_1.manual:
                     profile_container_1.set_visibility(False)
-                
+
                 # Display selected temperature sensors and values for Fan Wall 1
                 if wall_1 and wall_1.assigned_profile and wall_1.assigned_profile != 'None' and not wall_1.manual:
                     self.display_profile_sensors(wall_1.assigned_profile, 'px-5 pb-2 w-full')
-                
+
                 # Connect checkbox to slider/profile for Fan Wall 1
                 def toggle_fan_wall_1(e):
                     self.slider_list[0].set_enabled(e.value)
                     profile_select_1.set_enabled(not e.value)
                     profile_container_1.set_visibility(not e.value)  # Hide when manual, show when profile mode
-                    
+
                     # Update fan wall service
                     self.fan_control_service.set_manual_mode(1, e.value)
-                    
+
                     # When manual is unchecked, assign the first available fan profile
                     if not e.value and profile_options:
                         first_profile = profile_options[0]
                         profile_select_1.set_value(first_profile)
                         self.fan_control_service.assign_profile_to_wall(1, first_profile)
-                    
+
                     # Refresh drawer to update sensor displays
                     self.setup_fan_drawer()
-                
+
                 manual_checkbox_1.on_value_change(toggle_fan_wall_1)
-                
+
                 # Handle profile selection for Fan Wall 1
                 def on_profile_select_1(e):
                     if not manual_checkbox_1.value:
                         self.fan_control_service.assign_profile_to_wall(1, e.value)
                         # Refresh drawer to update sensor displays
                         self.setup_fan_drawer()
-                
+
                 profile_select_1.on_value_change(on_profile_select_1)
-                    
+
                 ui.separator()
-                
+
                 # Fan Wall 2
                 with ui.row().classes('w-full items-center justify-between px-5 mb-2'):
                     ui.label('Fan Wall 2').tooltip('Hidden fan header hidden under first powerboard.')
                     manual_checkbox_2 = ui.checkbox('Manual', value=wall_2.manual if wall_2 else True).classes('text-sm')
-                
+
                 with ui.element('div').classes('px-5 pt-1 w-full'):
                     self.slider_list[1] = ui.slider(
                         min=20, max=100,
@@ -570,51 +570,51 @@ class SystemOverview:
                         value=wall_2.assigned_profile if wall_2 and wall_2.assigned_profile in profile_options else profile_options[0]
                     ).classes('w-full')
                     profile_select_2.set_enabled(not (wall_2.manual if wall_2 else True))  # Enabled based on manual state
-                
+
                 # Hide/show profile container based on manual state
                 if wall_2 and wall_2.manual:
                     profile_container_2.set_visibility(False)
-                
+
                 # Display selected temperature sensors and values for Fan Wall 2
                 if wall_2 and wall_2.assigned_profile and wall_2.assigned_profile != 'None' and not wall_2.manual:
                     self.display_profile_sensors(wall_2.assigned_profile, 'px-5 pb-2 w-full')
-                
+
                 # Connect checkbox to slider/profile for Fan Wall 2
                 def toggle_fan_wall_2(e):
                     self.slider_list[1].set_enabled(e.value)
                     profile_select_2.set_enabled(not e.value)
                     profile_container_2.set_visibility(not e.value)  # Hide when manual, show when profile mode
-                    
+
                     # Update fan wall service
                     self.fan_control_service.set_manual_mode(2, e.value)
-                    
+
                     # When manual is unchecked, assign the first available fan profile
                     if not e.value and profile_options:
                         first_profile = profile_options[0]
                         profile_select_2.set_value(first_profile)
                         self.fan_control_service.assign_profile_to_wall(2, first_profile)
-                    
+
                     # Refresh drawer to update sensor displays
                     self.setup_fan_drawer()
-                
+
                 manual_checkbox_2.on_value_change(toggle_fan_wall_2)
-                
+
                 # Handle profile selection for Fan Wall 2
                 def on_profile_select_2(e):
                     if not manual_checkbox_2.value:
                         self.fan_control_service.assign_profile_to_wall(2, e.value)
                         # Refresh drawer to update sensor displays
                         self.setup_fan_drawer()
-                
+
                 profile_select_2.on_value_change(on_profile_select_2)
-                
+
                 ui.separator()
-                
+
                 # Fan Wall 3
                 with ui.row().classes('w-full items-center justify-between px-5 mb-2'):
                     ui.label('Fan Wall 3').tooltip('Exposed fan headers on the first powerboard.')
                     manual_checkbox_3 = ui.checkbox('Manual', value=wall_3.manual if wall_3 else True).classes('text-sm')
-                
+
                 with ui.element('div').classes('px-5 pt-1 w-full'):
                     self.slider_list[2] = ui.slider(
                         min=20, max=100
@@ -631,68 +631,68 @@ class SystemOverview:
                         value=wall_3.assigned_profile if wall_3 and wall_3.assigned_profile in profile_options else profile_options[0]
                     ).classes('w-full')
                     profile_select_3.set_enabled(not (wall_3.manual if wall_3 else True))  # Enabled based on manual state
-                
+
                 # Hide/show profile container based on manual state
                 if wall_3 and wall_3.manual:
                     profile_container_3.set_visibility(False)
-                
+
                 # Display selected temperature sensors and values for Fan Wall 3
                 if wall_3 and wall_3.assigned_profile and wall_3.assigned_profile != 'None' and not wall_3.manual:
                     self.display_profile_sensors(wall_3.assigned_profile, 'px-5 pb-2 w-full')
-                
+
                 # Connect checkbox to slider/profile for Fan Wall 3
                 def toggle_fan_wall_3(e):
                     self.slider_list[2].set_enabled(e.value)
                     profile_select_3.set_enabled(not e.value)
                     profile_container_3.set_visibility(not e.value)  # Hide when manual, show when profile mode
-                    
+
                     # Update fan wall service
                     self.fan_control_service.set_manual_mode(3, e.value)
-                    
+
                     # When manual is unchecked, assign the first available fan profile
                     if not e.value and profile_options:
                         first_profile = profile_options[0]
                         profile_select_3.set_value(first_profile)
                         self.fan_control_service.assign_profile_to_wall(3, first_profile)
-                    
+
                     # Refresh drawer to update sensor displays
                     self.setup_fan_drawer()
-                
+
                 manual_checkbox_3.on_value_change(toggle_fan_wall_3)
-                
+
                 # Handle profile selection for Fan Wall 3
                 def on_profile_select_3(e):
                     if not manual_checkbox_3.value:
                         self.fan_control_service.assign_profile_to_wall(3, e.value)
                         # Refresh drawer to update sensor displays
                         self.setup_fan_drawer()
-                
+
                 profile_select_3.on_value_change(on_profile_select_3)
-                
+
                 ui.separator()
-                
-            
+
+
             if 2 in globals.powerboardDict:  # Display auxiliary fan control
                 pb: Powerboard = globals.powerboardDict[2]
                 # Get current saved auxiliary fan speed from powerboard 2
                 aux_pwm_tuple = pb.get_saved_fan_pwm()
                 aux_pwm = aux_pwm_tuple[2]  # Use row 3 as the auxiliary speed
-                
+
                 # Get auxiliary fan wall state
                 wall_aux = self.fan_control_service.fan_walls.get(4)
-                
+
                 # Auxiliary Fans
                 with ui.row().classes('w-full items-center justify-between px-5 mb-2'):
                     ui.label('Auxiliary Fans').tooltip('Fan headers on the second powerboard.')
                     manual_checkbox_aux = ui.checkbox('Manual', value=wall_aux.manual if wall_aux else True).classes('text-sm')
-                
+
                 with ui.element('div').classes('px-5 pt-1 w-full'):
                     self.slider_list[3] = ui.slider(
                         min=20, max=100
                     ).props('label-always')
                     self.slider_list[3].bind_value(self.fan_control_service.fan_walls[4], 'current_speed')
                     self.slider_list[3].set_enabled(wall_aux.manual if wall_aux else True)  # Enabled based on manual state
-                
+
                 # Profile selection for Auxiliary Fans - hide when manual mode is enabled
                 profile_container_aux = ui.element('div').classes('px-5 pb-2 w-full')
                 with profile_container_aux:
@@ -702,56 +702,56 @@ class SystemOverview:
                         value=wall_aux.assigned_profile if wall_aux and wall_aux.assigned_profile in profile_options else profile_options[0]
                     ).classes('w-full')
                     profile_select_aux.set_enabled(not (wall_aux.manual if wall_aux else True))  # Enabled based on manual state
-                
+
                 # Hide/show profile container based on manual state
                 if wall_aux and wall_aux.manual:
                     profile_container_aux.set_visibility(False)
-                
+
                 # Display selected temperature sensors and values for Auxiliary Fans
                 if wall_aux and wall_aux.assigned_profile and wall_aux.assigned_profile != 'None' and not wall_aux.manual:
                     self.display_profile_sensors(wall_aux.assigned_profile, 'px-5 pb-2 w-full')
-                
+
                 # Connect checkbox to slider/profile for Auxiliary Fans
                 def toggle_auxiliary_fans(e):
                     self.slider_list[3].set_enabled(e.value)
                     profile_select_aux.set_enabled(not e.value)
                     profile_container_aux.set_visibility(not e.value)  # Hide when manual, show when profile mode
-                    
+
                     # Update auxiliary fan wall service
                     self.fan_control_service.set_manual_mode(4, e.value)
-                    
+
                     # When manual is unchecked, assign the first available fan profile
                     if not e.value and profile_options:
                         first_profile = profile_options[0]
                         profile_select_aux.set_value(first_profile)
                         self.fan_control_service.assign_profile_to_wall(4, first_profile)
-                    
+
                     # Refresh drawer to update sensor displays
                     self.setup_fan_drawer()
-                
+
                 manual_checkbox_aux.on_value_change(toggle_auxiliary_fans)
-                
+
                 # Handle profile selection for Auxiliary Fans
                 def on_profile_select_aux(e):
                     if not manual_checkbox_aux.value:
                         self.fan_control_service.assign_profile_to_wall(4, e.value)
                         # Refresh drawer to update sensor displays
                         self.setup_fan_drawer()
-                
+
                 profile_select_aux.on_value_change(on_profile_select_aux)
-                
+
                 ui.separator()
 
     def display_drive_attributes(self, button: DriveButton):
         """Display drive attributes in the right drawer."""
         self.right_drawer.clear()
-        
+
         with self.right_drawer:
             columns = [
                 {'name': 'attribute', 'label': 'Attribute', 'field': 'attribute', 'required': True, 'align': 'left'},
                 {'name': 'value', 'label': 'Value', 'field': 'value', 'required': True, 'align': 'right'},
             ]
-            
+
             d = button.assigned_drive
             rows = [
                 {'attribute': 'Model', 'value': d.model},
@@ -774,12 +774,12 @@ class SystemOverview:
                     edit_icon.set_visibility(False)
                 with ui.menu().props('fit'):
                     ui.menu_item('Remove drive', lambda: button.clear_drive())
-            
+
             ui.table(columns=columns, rows=rows, row_key='attribute').classes('w-full')
             with ui.element('dive').classes('w-full px-4'):
                 ui.button(
-                    "Show All", 
-                    icon='open_in_new', 
+                    "Show All",
+                    icon='open_in_new',
                     on_click=lambda: self.display_full_drive_attributes(d)
                 ).classes('w-full border-solid border-2 border-[#ffdd00]').props('flat color="white"')
 
@@ -790,7 +790,7 @@ class SystemOverview:
             self.right_drawer.show()
             self.last_button = button
         elif self.last_button in self.fan_buttons_list:  # Last click was fans
-            await self.toggle_fan_buttons() 
+            await self.toggle_fan_buttons()
             self.toggle_drive_buttons(button)
             self.last_button = button
         elif self.last_button == button:  # Same button clicked, deselect
@@ -811,7 +811,7 @@ class SystemOverview:
         """Set up the drive assignment drawer."""
         with self.right_drawer:
             self.right_drawer.clear()
-            
+
             with ui.item().classes('w-full bg-[#ffdd00]'):
                 with ui.item_section():
                     ui.item_label("Assign Drive").style('color: black')
@@ -819,13 +819,13 @@ class SystemOverview:
                 ui.select(
                     label="Select or search drive",
                     options=[
-                        globals.drivesList[k].model + ' (' + globals.drivesList[k].serial_num + ')' 
+                        globals.drivesList[k].model + ' (' + globals.drivesList[k].serial_num + ')'
                         for k in globals.drivesList
-                    ], 
+                    ],
                     with_input=True,
                     on_change=lambda e: (
-                        button.assign_drive(e.value), 
-                        globals.layoutState.insert_drive(button.card, e.value, button.button_index), 
+                        button.assign_drive(e.value),
+                        globals.layoutState.insert_drive(button.card, e.value, button.button_index),
                         self.display_drive_attributes(button)
                     )
                 ).classes('w-full')
@@ -837,6 +837,17 @@ class SystemOverview:
         backplane_type = backplane.product
         if (card.tabsRight == False): # If even, 2nd row, use other cage orientation
             cage = "-rotated"
+
+        # Get chassis orientation to determine button order for SML2+2
+        orientation = globals.layoutState.get_chassis_orientation()
+
+        # Configure button order for SML2+2 based on orientation
+        if orientation == "inverted":
+            # Inverted: SSD buttons on top (positions 0,1), HDD buttons on bottom (positions 2,3)
+            sml_button_order = [SmlSSDButton, SmlSSDButton, HDDButton, HDDButton]
+        else:
+            # Normal: HDD buttons on top (positions 0,1), SSD buttons on bottom (positions 2,3)
+            sml_button_order = [HDDButton, HDDButton, SmlSSDButton, SmlSSDButton]
 
         backplane_configs = {
             "STD4HDD": {
@@ -851,15 +862,15 @@ class SystemOverview:
             },
             "SML2+2": {
                 "buttons": 4,
-                "button_class": [HDDButton, HDDButton, SmlSSDButton, SmlSSDButton],
+                "button_class": sml_button_order,
                 "layout": "mixed"
             }
         }
-        
+
         config = backplane_configs.get(backplane_type)
         if not config:
             return
-            
+
         with card:
             if config["layout"] == "single_column":
                 with ui.element('div').classes(f'f-shape{cage} h-full flex items-center justify-center p-1'):
@@ -873,13 +884,13 @@ class SystemOverview:
                     ui.element('div').classes(f'extension-patch patch-top-arm-bottom{cage}')
                     ui.element('div').classes(f'extension-patch patch-mid-arm-top{cage}')
                     ui.element('div').classes(f'extension-patch patch-mid-arm-bottom{cage}')
-                        
+
             elif config["layout"] == "two_column":
                 with ui.element('div').classes(f'f-shape{cage} grid grid-cols-2 gap-1 flex items-center justify-center h-full p-1'):
                     with ui.element('col1').classes('col-span-1 h-full'):
                         for i in range(6):
                             button = config["button_class"](card, i, backplane.drives_hashes[i])
-                            button.on_click_handler = self.select_drive  
+                            button.on_click_handler = self.select_drive
                             button.on('click', lambda b=button: self.select_drive(b))
                             card.buttons.append(button.classes('truncate'))
                     with ui.element('col2').classes('col-span-1 h-full'):
@@ -892,7 +903,7 @@ class SystemOverview:
                     ui.element('div').classes(f'extension-patch patch-top-arm-bottom{cage}')
                     ui.element('div').classes(f'extension-patch patch-mid-arm-top{cage}')
                     ui.element('div').classes(f'extension-patch patch-mid-arm-bottom{cage}')
-                            
+
             elif config["layout"] == "mixed":
                 with ui.element('div').classes(f'f-shape{cage} h-full flex items-center justify-center p-1'):
                     with ui.element('col').classes('col h-full flex justify-center'):
@@ -901,21 +912,21 @@ class SystemOverview:
                             button = button_class(card, i, backplane.drives_hashes[i])
                             button.on_click_handler = self.select_drive
                             button.on('click', lambda b=button: self.select_drive(b))
-                            if i >= 2:  # SSD buttons
+                            if button_class == SmlSSDButton:  # SSD buttons
                                 button.props('no-wrap')
                             else: # HDD buttons
                                 button.style('height: 28%;')
                             card.buttons.append(button)
-                
+
                     ui.element('div').classes(f'extension-patch patch-top-arm-bottom{cage}')
                     ui.element('div').classes(f'extension-patch patch-mid-arm-top{cage}')
                     ui.element('div').classes(f'extension-patch patch-mid-arm-bottom{cage}')
-            
+
             with ui.context_menu():
                 ui.menu_item(
-                    'Remove Backplane', 
+                    'Remove Backplane',
                     on_click=lambda: (
-                        globals.layoutState.remove_backplane(card), 
+                        globals.layoutState.remove_backplane(card),
                         self.add_backplane_button(card, card.__class__)
                     )
                 )
@@ -932,34 +943,62 @@ class SystemOverview:
                 self.last_button = None
                 self.right_drawer.hide()
         card.buttons.clear()
-        
+
+        # Get chassis orientation to determine backplane options
+        orientation = globals.layoutState.get_chassis_orientation()
+        chassis_type = globals.layoutState.get_product()
+
+        # Determine if this card should show standard options based on orientation and position
+        if orientation == "normal":
+            # Normal orientation: use original card class logic
+            show_standard_options = (card_class == StdPlaceHolderCard)
+        else:
+            # Inverted orientation: swap only the top and bottom rows
+            if chassis_type == "Hako-Core":
+                if card.index in {0, 1, 2}:  # Top row - give 2+2 options (was standard)
+                    show_standard_options = False
+                elif card.index in {9, 10, 11}:  # Bottom row - give standard options (was 2+2)
+                    show_standard_options = True
+                else:  # All middle positions (3,4,5,6,7,8) - keep original standard options
+                    show_standard_options = True
+            elif chassis_type == "Hako-Core Mini":
+                if card.index in {0, 1}:  # Top row - give 2+2 options (was standard)
+                    show_standard_options = False
+                elif card.index in {6, 7}:  # Bottom row - give standard options (was 2+2)
+                    show_standard_options = True
+                else:  # All middle positions (2,3,4,5) - keep original standard options
+                    show_standard_options = True
+            else:
+                # Fallback to original logic
+                show_standard_options = (card_class == StdPlaceHolderCard)
+
         with card.style(f'{element_justified}'):
-            if card_class == StdPlaceHolderCard:
-                    # Use the custom component just like a normal dropdown
-                with FadingDropdown('Add Backplane', icon='add').menu:
+            with FadingDropdown('Add Backplane', icon='add').menu:
+                if show_standard_options:
+                    # Show standard backplane options (4 HDD, 12 SSD)
                     ui.menu_item(
-                        '4 HDD Backplane', 
+                        '4 HDD Backplane',
                         on_click=lambda: self.setup_backplane_buttons(
-                            card, 
-                            globals.layoutState.insert_backplane(card, "STD4HDD"), 
+                            card,
+                            globals.layoutState.insert_backplane(card, "STD4HDD"),
                             card.index
                         )
                     )
                     ui.menu_item(
-                        '12 SSD Backplane', 
+                        '12 SSD Backplane',
                         on_click=lambda: self.setup_backplane_buttons(
-                            card, 
-                            globals.layoutState.insert_backplane(card, "STD12SSD"), 
+                            card,
+                            globals.layoutState.insert_backplane(card, "STD12SSD"),
                             card.index
                         )
                     )
-            else:  # SmlPlaceHolderCard
-                with FadingDropdown('Add Backplane', icon='add').menu:
+                else:
+                    # Show small backplane options (2+2 only)
                     ui.menu_item(
-                        '2+2 Backplane', 
+                        '2+2 Backplane',
                         on_click=lambda: self.setup_backplane_buttons(
-                            card, 
-                            globals.layoutState.insert_backplane(card, "SML2+2"), 
+                            card,
+                            globals.layoutState.insert_backplane(card, "SML2+2"),
                             card.index
                         )
                     )
@@ -972,7 +1011,7 @@ class SystemOverview:
         card.clear()
         self.fan_buttons_list.clear()
         self.wattage_card_list.clear()
-        
+
         layout_configs = {
             "Hako-Core": {
                 "grid_cols": 12,
@@ -989,16 +1028,16 @@ class SystemOverview:
                 "sml_cards": 2
             }
         }
-        
+
         config = layout_configs[chassis_type]
-        
+
         # Create a grid container inside the card element
         with card:
             with ui.element('div').classes(
                 f'grid grid-cols-{config["grid_cols"]} gap-0'
             ).style('height: 98.9dvh; width: 70dvw; min-width: 1200px; min-height: 800px; grid-template-rows: 4% 25% 25% 25% 21%;') as grid_container:
                 # Use the grid container for the rest of the method
-                
+
                 # Create fan buttons and wattage cards in the proper order
                 for i in range(2):
                     RPMCard(i)
@@ -1012,7 +1051,7 @@ class SystemOverview:
                 # Create backplane cards
                 if not globals.layoutState.is_empty():
                     backplane_list = globals.layoutState.get_backplanes()
-                    
+
                     # Standard cards
                     for i, bp in enumerate(backplane_list[:config["std_cards"]]):
                         if i < 2: # insert fan div for first part
@@ -1023,12 +1062,12 @@ class SystemOverview:
                             self.setup_backplane_buttons(card_widget, bp, i)
                         else:
                             self.add_backplane_button(card_widget, StdPlaceHolderCard)
-                            
+
                         if i == 2 and chassis_type == "Hako-Core":  # Reversed for the last one
                             row2_3 = FanRowButtons(self.select_fans)
                             self.fan_buttons_list.extend(row2_3.row_Of_Buttons)
 
-                    
+
                     # Small cards
                     start_idx = 9 if chassis_type == "Hako-Core" else 6
                     for i, bp in enumerate(backplane_list[start_idx:start_idx + config["sml_cards"]]):
@@ -1061,21 +1100,21 @@ class SystemOverview:
                     chassis_dialog.close()
                     # Force UI update after closing dialog
                     self.create_chassis_layout(main_content, "Hako-Core")
-                
+
                 def select_hako_core_mini():
                     chassis_dialog.close()
                     self.create_chassis_layout(main_content, "Hako-Core Mini")
-                
+
                 ui.button(
                     'Hako-Core',
                     on_click=select_hako_core
                 ).classes('border-solid border-2 border-[#ffdd00] px-8 py-4').props('flat color="white"')
-                
+
                 ui.button(
-                    'Hako-Core Mini', 
+                    'Hako-Core Mini',
                     on_click=select_hako_core_mini
                 ).classes('border-solid border-2 border-[#ffdd00] px-8 py-4').props('flat color="white"')
-        
+
         chassis_dialog.open()
 
     def create_ui(self):
@@ -1084,7 +1123,7 @@ class SystemOverview:
             with ui.element('div').classes('flex w-full').style('justify-content: safe center;'):
                 with ui.element('div').classes('pseudo-extend') as main_content:
                     current_chassis = globals.layoutState.get_product()
-                    
+
                     if current_chassis is None:
                         # Show chassis selection dialog
                         self.show_chassis_selection_dialog(main_content)
@@ -1099,11 +1138,11 @@ class SystemOverview:
             with ui.dialog() as self.fan_change_dialog, ui.card():
                 ui.label('Apply changes?')
                 ui.button(
-                    'Apply', 
+                    'Apply',
                     on_click=lambda: self.fan_change_dialog.submit("Apply")
                 ).on_click(self.set_fan_speed)
                 ui.button(
-                    'Discard', 
+                    'Discard',
                     on_click=lambda: self.fan_change_dialog.submit("Discard")
                 ).on_click(self.dialog_handler_discard)
 
@@ -1113,19 +1152,19 @@ def overviewPage():
 
     The powerboard is an object that gets refreshed every 3 seconds for new values and the respective
     UI elements are updated. During the refresh, the powerboard is unable to take commands for 2 seconds.
-    Fan control commands are queued if the powerboard is busy. A toast notification will popup indicating 
+    Fan control commands are queued if the powerboard is busy. A toast notification will popup indicating
     a fan command has been executed.
 
     The drive information is taken from smartctl commands so S.M.A.R.T. must be enabled on the drives to
-    be shown. 
+    be shown.
     """
     # Set up static file serving for CSS
     app.add_static_files('/css', 'css')
-    
+
     # Add CSS file references
     ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/f-shape.css">')
     ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/f-shape-rotated.css">')
     ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/pseudo-extend.css">')
-    
+
     overview = SystemOverview()
     overview.create_ui()
