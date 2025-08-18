@@ -948,8 +948,21 @@ class SystemOverview:
 
         need_flip = should_flip(index)
 
-        # order for SML2+2
-        sml_button_order = [HDDButton, HDDButton, SmlSSDButton, SmlSSDButton]
+        # order for SML2+2 - check if we need reversed order for inverted mode
+        def should_reverse_sml_order():
+            """Check if SML2+2 backplane should have reversed button order (SSDs first)."""
+            if globals.layoutState.get_chassis_orientation() != "inverted":
+                return False
+            if backplane_type != "SML2+2":
+                return False
+            # If backplane is NOT getting visually flipped but we're in inverted mode,
+            # reverse the button order so SSDs end up on top
+            return not need_flip
+
+        if should_reverse_sml_order():
+            sml_button_order = [SmlSSDButton, SmlSSDButton, HDDButton, HDDButton]
+        else:
+            sml_button_order = [HDDButton, HDDButton, SmlSSDButton, SmlSSDButton]
 
         backplane_configs = {
             "STD4HDD": {"buttons": 4, "button_class": HDDButton, "layout": "single_column"},
