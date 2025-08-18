@@ -293,13 +293,6 @@ def settingsPage():
                     ).classes('border-solid border-2 border-red-500 text-red-500 px-6 py-2').props('flat')
                     ui.label('Remove all backplanes and drive assignments').classes('text-xs text-gray-500 ml-2 self-center')
 
-                    ui.label('Temperature Units:').classes('flex justify-start items-center')
-                    ui.select(
-                        ['C', 'F'],
-                        value=globals.layoutState.get_units(),
-                        on_change=lambda e: globals.layoutState.set_units(e.value)
-                    ).style('justify-content:end;')
-
                 ui.separator().classes('mb-6')
 
                 # Powerboard Information Section
