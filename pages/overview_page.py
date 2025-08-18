@@ -1049,23 +1049,34 @@ class SystemOverview:
         chassis_type = globals.layoutState.get_product()
 
         if orientation == "normal":
+            # In normal mode, card class determines backplane options
             show_standard_options = (card_class == StdPlaceHolderCard)
         else:
+            # In inverted mode, certain positions change their backplane type options
             if chassis_type == "Hako-Core":
-                if card.index in {0, 1}:
-                    show_standard_options = False
-                elif card.index in {9, 10}:
-                    show_standard_options = True
+                # In inverted mode for Hako-Core:
+                # - Positions 0, 1 should show small (2+2) backplane options
+                # - Positions 9, 10, 11 should show standard backplane options (was small in normal)
+                # - All other positions show standard backplane options
+                if card.index in {0, 1, 2}:  # Fixed: include all 3 top positions for small backplanes
+                    show_standard_options = False  # Show small (2+2) options
+                elif card.index in {9, 10, 11}:
+                    show_standard_options = True   # Show standard options
                 else:
-                    show_standard_options = True
+                    show_standard_options = True   # Show standard options
             elif chassis_type == "Hako-Core Mini":
+                # In inverted mode for Hako-Core Mini:
+                # - Positions 0, 1 should show small (2+2) backplane options
+                # - Positions 6, 7 should show standard backplane options (was small in normal)
+                # - All other positions show standard backplane options
                 if card.index in {0, 1}:
-                    show_standard_options = False
+                    show_standard_options = False  # Show small (2+2) options
                 elif card.index in {6, 7}:
-                    show_standard_options = True
+                    show_standard_options = True   # Show standard options
                 else:
-                    show_standard_options = True
+                    show_standard_options = True   # Show standard options
             else:
+                # Fallback to card class-based logic
                 show_standard_options = (card_class == StdPlaceHolderCard)
 
         with card.style(f'{element_justified}'):
