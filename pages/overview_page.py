@@ -429,7 +429,7 @@ class SystemOverview:
         if chassis == "Hako-Core":
             return i in {0, 1, 3, 4, 6, 7, 9, 10}
         if chassis == "Hako-Core Mini":
-            return i in {0, 1, 2, 3, 4, 5}
+            return i in {0, 1, 2, 3, 4, 5, 6, 7}
         return False
 
     def should_rotate_backplane(self, index: int) -> bool:
