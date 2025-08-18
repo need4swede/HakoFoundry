@@ -150,10 +150,11 @@ class FansRowButton(ui.button):
 
 class FanRowButtons(ui.element):
 
-    def __init__(self, callback):
+    def __init__(self, callback, grid_position: str):
         super().__init__()
         self.row_Of_Buttons = []
-        with self.classes('row-span-5 w-full'):
+        # Use explicit grid positioning
+        with self.classes('w-full').style(f'grid-area: {grid_position};'):
             with ui.element('div').classes('h-full flex flex-col p-3 mx-3 bg-neutral-900'):
                 b1 = FansRowButton().classes('mb-3')
                 b1.on_click(lambda b=b1: callback(b))
@@ -167,10 +168,10 @@ class FanRowButtons(ui.element):
 class RPMCard(ui.element):
     """Button for fan row controls."""
 
-    def __init__(self, index) -> None:
+    def __init__(self, index, grid_position: str) -> None:
         super().__init__('div')
 
-        with self.classes('px-1 p-1 flex content-center justify-center items-center w-full border-solid border-white rounded-md border-2 bg-neutral-900'):
+        with self.classes('px-1 p-1 flex content-center justify-center items-center w-full border-solid border-white rounded-md border-2 bg-neutral-900').style(f'grid-area: {grid_position};'):
             if 1 in globals.powerboardDict:
                 match index:
                     case 0:
@@ -185,9 +186,9 @@ class RPMCard(ui.element):
 class WattageCard(ui.element):
     """Card to show wattage info from powerboard."""
 
-    def __init__(self, index) -> None:
+    def __init__(self, index, grid_position: str) -> None:
         super().__init__('div')
-        with self.classes('col-span-3 px-1 p-1 flex content-center justify-center items-center w-full border-solid border-white rounded-md border-2 bg-neutral-900'):
+        with self.classes('px-1 p-1 flex content-center justify-center items-center w-full border-solid border-white rounded-md border-2 bg-neutral-900').style(f'grid-area: {grid_position};'):
             match index:
                 case 0:
                     if 1 in globals.powerboardDict:
@@ -209,7 +210,7 @@ class WattageCard(ui.element):
 class StdPlaceHolderCard(ui.element):
     """Standard size card representing standard backplanes."""
 
-    def __init__(self, index, backplane: Backplane) -> None:
+    def __init__(self, index, backplane: Backplane, grid_position: str) -> None:
         super().__init__('div')
         self.index = index
         self.buttons = []
@@ -222,9 +223,7 @@ class StdPlaceHolderCard(ui.element):
             if (index % 2 == 1): # 2nd row
                 self.tabsRight = False
 
-        with self.classes(
-            'col-span-3 p-0 flex '
-        ).style('aspect-ratio: 1/1; width: 100%; height: 100%;'):
+        with self.classes('p-0 flex').style(f'aspect-ratio: 1/1; width: 100%; height: 100%; grid-area: {grid_position};'):
             # Will be populated by parent function
             pass
 
@@ -232,7 +231,7 @@ class StdPlaceHolderCard(ui.element):
 class SmlPlaceHolderCard(ui.element):
     """Small size card representing small backplanes."""
 
-    def __init__(self, index, backplane) -> None:
+    def __init__(self, index, backplane, grid_position: str) -> None:
         super().__init__('div')
         self.index = index
         self.buttons = []
@@ -245,9 +244,7 @@ class SmlPlaceHolderCard(ui.element):
             if (index % 2 == 1): # 2nd row
                 self.tabsRight = False
 
-        with self.classes(
-            'col-span-3 p-0 flex h-full'
-        ).style('aspect-ratio: 100/87; width: 100%; max-height: 100%;'):
+        with self.classes('p-0 flex h-full').style(f'aspect-ratio: 100/87; width: 100%; max-height: 100%; grid-area: {grid_position};'):
             # Will be populated by parent function
             pass
 
@@ -323,6 +320,82 @@ class FadingDropdown(ui.element):
         self.hide_timer = None
         self._update_visibility_classes()
 
+class ChassisLayoutManager:
+    """Manages chassis layout configurations and grid positioning."""
+
+    def __init__(self):
+        self.layouts = {
+            "Hako-Core": {
+                "normal": {
+                    "grid_template_areas": """
+                        "rpm1 rpm1 rpm2 rpm2 watt1 watt1 watt1 watt1 watt2 watt2 watt2 watt2 watt3 watt3 watt3 watt3 rpm3 rpm3 rpm4 rpm4 rpm5 rpm5 rpm6 rpm6"
+                        "fan1 . bp1 bp1 bp1 bp1 bp1 bp1 fan2 . bp2 bp2 bp2 bp2 bp2 bp2 bp3 bp3 bp3 bp3 bp3 bp3 fan3 ."
+                        "fan1 . bp4 bp4 bp4 bp4 bp4 bp4 fan2 . bp5 bp5 bp5 bp5 bp5 bp5 bp6 bp6 bp6 bp6 bp6 bp6 fan3 ."
+                        "fan1 . bp7 bp7 bp7 bp7 bp7 bp7 fan2 . bp8 bp8 bp8 bp8 bp8 bp8 bp9 bp9 bp9 bp9 bp9 bp9 fan3 ."
+                        "fan1 . sml1 sml1 sml1 sml1 sml1 sml1 fan2 . sml2 sml2 sml2 sml2 sml2 sml2 sml3 sml3 sml3 sml3 sml3 sml3 fan3 ."
+                    """,
+                    "fan_positions": ["fan1", "fan2", "fan3"],
+                    "backplane_positions": ["bp1", "bp2", "bp3", "bp4", "bp5", "bp6", "bp7", "bp8", "bp9"],
+                    "small_positions": ["sml1", "sml2", "sml3"],
+                    "rpm_positions": ["rpm1", "rpm2", "rpm3", "rpm4", "rpm5", "rpm6"],
+                    "watt_positions": ["watt1", "watt2", "watt3"]
+                },
+                "inverted": {
+                    "grid_template_areas": """
+                        "rpm1 rpm1 rpm2 rpm2 watt1 watt1 watt1 watt1 watt2 watt2 watt2 watt2 watt3 watt3 watt3 watt3 rpm3 rpm3 rpm4 rpm4 rpm5 rpm5 rpm6 rpm6"
+                        "fan1 . bp1 bp1 bp1 bp1 bp1 bp1 bp2 bp2 bp2 bp2 bp2 bp2 fan2 . bp3 bp3 bp3 bp3 bp3 bp3 fan3 ."
+                        "fan1 . bp4 bp4 bp4 bp4 bp4 bp4 bp5 bp5 bp5 bp5 bp5 bp5 fan2 . bp6 bp6 bp6 bp6 bp6 bp6 fan3 ."
+                        "fan1 . bp7 bp7 bp7 bp7 bp7 bp7 bp8 bp8 bp8 bp8 bp8 bp8 fan2 . bp9 bp9 bp9 bp9 bp9 bp9 fan3 ."
+                        "fan1 . sml1 sml1 sml1 sml1 sml1 sml1 sml2 sml2 sml2 sml2 sml2 sml2 fan2 . sml3 sml3 sml3 sml3 sml3 sml3 fan3 ."
+                    """,
+                    "fan_positions": ["fan1", "fan2", "fan3"],
+                    "backplane_positions": ["bp1", "bp2", "bp3", "bp4", "bp5", "bp6", "bp7", "bp8", "bp9"],
+                    "small_positions": ["sml1", "sml2", "sml3"],
+                    "rpm_positions": ["rpm1", "rpm2", "rpm3", "rpm4", "rpm5", "rpm6"],
+                    "watt_positions": ["watt1", "watt2", "watt3"]
+                }
+            },
+            "Hako-Core Mini": {
+                "normal": {
+                    "grid_template_areas": """
+                        "rpm1 rpm1 rpm2 rpm2 watt1 watt1 watt1 watt1 watt2 watt2 watt2 watt2 rpm3 rpm3 rpm4 rpm4"
+                        "fan1 . bp1 bp1 bp1 bp1 bp1 bp1 fan2 . bp2 bp2 bp2 bp2 bp2 bp2"
+                        "fan1 . bp3 bp3 bp3 bp3 bp3 bp3 fan2 . bp4 bp4 bp4 bp4 bp4 bp4"
+                        "fan1 . bp5 bp5 bp5 bp5 bp5 bp5 fan2 . bp6 bp6 bp6 bp6 bp6 bp6"
+                        "fan1 . sml1 sml1 sml1 sml1 sml1 sml1 fan2 . sml2 sml2 sml2 sml2 sml2 sml2"
+                    """,
+                    "fan_positions": ["fan1", "fan2"],
+                    "backplane_positions": ["bp1", "bp2", "bp3", "bp4", "bp5", "bp6"],
+                    "small_positions": ["sml1", "sml2"],
+                    "rpm_positions": ["rpm1", "rpm2", "rpm3", "rpm4"],
+                    "watt_positions": ["watt1", "watt2"]
+                },
+                "inverted": {
+                    "grid_template_areas": """
+                        "rpm1 rpm1 rpm2 rpm2 watt1 watt1 watt1 watt1 watt2 watt2 watt2 watt2 rpm3 rpm3 rpm4 rpm4"
+                        "fan1 . bp1 bp1 bp1 bp1 bp1 bp1 bp2 bp2 bp2 bp2 bp2 bp2 fan2 ."
+                        "fan1 . bp3 bp3 bp3 bp3 bp3 bp3 bp4 bp4 bp4 bp4 bp4 bp4 fan2 ."
+                        "fan1 . bp5 bp5 bp5 bp5 bp5 bp5 bp6 bp6 bp6 bp6 bp6 bp6 fan2 ."
+                        "fan1 . sml1 sml1 sml1 sml1 sml1 sml1 sml2 sml2 sml2 sml2 sml2 sml2 fan2 ."
+                    """,
+                    "fan_positions": ["fan1", "fan2"],
+                    "backplane_positions": ["bp1", "bp2", "bp3", "bp4", "bp5", "bp6"],
+                    "small_positions": ["sml1", "sml2"],
+                    "rpm_positions": ["rpm1", "rpm2", "rpm3", "rpm4"],
+                    "watt_positions": ["watt1", "watt2"]
+                }
+            }
+        }
+
+    def get_layout_config(self, chassis_type: str, orientation: str = "normal"):
+        """Get layout configuration for chassis type and orientation."""
+        return self.layouts.get(chassis_type, {}).get(orientation, {})
+
+    def get_grid_template_areas(self, chassis_type: str, orientation: str = "normal"):
+        """Get CSS grid-template-areas string for the layout."""
+        config = self.get_layout_config(chassis_type, orientation)
+        return config.get("grid_template_areas", "")
+
 class SystemOverview:
     """Main class to handle the system overview page functionality."""
 
@@ -335,6 +408,7 @@ class SystemOverview:
         self.last_button = None
         self.right_drawer = None
         self.fan_change_dialog = None
+        self.layout_manager = ChassisLayoutManager()
 
         # Use the global fan control service instance
         self.fan_control_service = globals.fan_control_service
@@ -1003,7 +1077,7 @@ class SystemOverview:
                     )
 
     def create_chassis_layout(self, card: ui.element, chassis_type: str):
-        """Create chassis layout based on type."""
+        """Create chassis layout based on type using explicit grid positioning."""
         if globals.layoutState.get_product() is None:
             globals.layoutState.set_product(chassis_type)
 
@@ -1011,83 +1085,71 @@ class SystemOverview:
         self.fan_buttons_list.clear()
         self.wattage_card_list.clear()
 
-        layout_configs = {
-            "Hako-Core": {
-                "grid_cols": 12,
-                "fan_buttons": 3,
-                "wattage_cards": 3,
-                "std_cards": 9,
-                "sml_cards": 3
-            },
-            "Hako-Core Mini": {
-                "grid_cols": 8,
-                "fan_buttons": 2,
-                "wattage_cards": 2,
-                "std_cards": 6,
-                "sml_cards": 2
-            }
-        }
+        # Get chassis orientation
+        orientation = globals.layoutState.get_chassis_orientation() or "normal"
 
-        config = layout_configs[chassis_type]
+        # Get layout configuration
+        layout_config = self.layout_manager.get_layout_config(chassis_type, orientation)
+        if not layout_config:
+            print(f"No layout config found for {chassis_type} {orientation}")
+            return
 
-        # Create a grid container inside the card element
+        grid_template_areas = self.layout_manager.get_grid_template_areas(chassis_type, orientation)
+
+        # Create a grid container with explicit positioning
         with card:
-            with ui.element('div').classes(
-                f'grid grid-cols-{config["grid_cols"]} gap-0'
-            ).style('height: 98.9dvh; width: 70dvw; min-width: 1200px; min-height: 800px; grid-template-rows: 4% 25% 25% 25% 21%;') as grid_container:
-                # Use the grid container for the rest of the method
+            with ui.element('div').classes('gap-0').style(
+                f'height: 98.9dvh; width: 70dvw; min-width: 1200px; min-height: 800px; '
+                f'display: grid; grid-template-areas: {grid_template_areas}; '
+                f'grid-template-rows: 4% 25% 25% 25% 21%;'
+            ) as grid_container:
 
-                # Create fan buttons and wattage cards in the proper order
-                for i in range(2):
-                    RPMCard(i)
-                    if i < config["wattage_cards"]:
-                        self.wattage_card_list.append(WattageCard(i))
+                # Create RPM cards
+                for i, position in enumerate(layout_config["rpm_positions"]):
+                    RPMCard(i, position)
 
-                if config["fan_buttons"] == 3:
-                    self.wattage_card_list.append(WattageCard(2))
-                    RPMCard(2)
+                # Create wattage cards
+                for i, position in enumerate(layout_config["watt_positions"]):
+                    self.wattage_card_list.append(WattageCard(i, position))
+
+                # Create fan columns
+                for i, position in enumerate(layout_config["fan_positions"]):
+                    fan_row = FanRowButtons(self.select_fans, position)
+                    self.fan_buttons_list.extend(fan_row.row_Of_Buttons)
 
                 # Create backplane cards
                 if not globals.layoutState.is_empty():
                     backplane_list = globals.layoutState.get_backplanes()
 
-                    # Standard cards
-                    for i, bp in enumerate(backplane_list[:config["std_cards"]]):
-                        if i < 2: # insert fan div for first part
-                            row1 = FanRowButtons(self.select_fans)
-                            self.fan_buttons_list.extend(row1.row_Of_Buttons)
-                        card_widget = StdPlaceHolderCard(i, bp)
+                    # Standard backplane cards
+                    for i, position in enumerate(layout_config["backplane_positions"]):
+                        bp = backplane_list[i] if i < len(backplane_list) else None
+                        card_widget = StdPlaceHolderCard(i, bp, position)
                         if bp:
                             self.setup_backplane_buttons(card_widget, bp, i)
                         else:
                             self.add_backplane_button(card_widget, StdPlaceHolderCard)
 
-                        if i == 2 and chassis_type == "Hako-Core":  # Reversed for the last one
-                            row2_3 = FanRowButtons(self.select_fans)
-                            self.fan_buttons_list.extend(row2_3.row_Of_Buttons)
-
-
                     # Small cards
-                    start_idx = 9 if chassis_type == "Hako-Core" else 6
-                    for i, bp in enumerate(backplane_list[start_idx:start_idx + config["sml_cards"]]):
-                        card_widget = SmlPlaceHolderCard(i + start_idx, bp)
+                    start_idx = len(layout_config["backplane_positions"])
+                    for i, position in enumerate(layout_config["small_positions"]):
+                        bp_index = start_idx + i
+                        bp = backplane_list[bp_index] if bp_index < len(backplane_list) else None
+                        card_widget = SmlPlaceHolderCard(bp_index, bp, position)
                         if bp:
-                            self.setup_backplane_buttons(card_widget, bp, i + start_idx)
+                            self.setup_backplane_buttons(card_widget, bp, bp_index)
                         else:
                             self.add_backplane_button(card_widget, SmlPlaceHolderCard)
                 else:
                     # Create empty cards
-                    for i in range(config["std_cards"]):
-                        if i < 2: # insert fan div for first part
-                            row1 = FanRowButtons(self.select_fans)
-                            self.fan_buttons_list.extend(row1.row_Of_Buttons)
-                        card_widget = StdPlaceHolderCard(i, None)
+                    for i, position in enumerate(layout_config["backplane_positions"]):
+                        card_widget = StdPlaceHolderCard(i, None, position)
                         self.add_backplane_button(card_widget, StdPlaceHolderCard)
-                        if i == 2 and chassis_type == "Hako-Core":  # Reversed for the last one
-                            row2_3 = FanRowButtons(self.select_fans)
-                            self.fan_buttons_list.extend(row2_3.row_Of_Buttons)
-                    for i in range(config["sml_cards"]):
-                        card_widget = SmlPlaceHolderCard(i + (9 if chassis_type == "Hako-Core" else 6), None)
+
+                    # Empty small cards
+                    start_idx = len(layout_config["backplane_positions"])
+                    for i, position in enumerate(layout_config["small_positions"]):
+                        card_widget = SmlPlaceHolderCard(start_idx + i, None, position)
                         self.add_backplane_button(card_widget, SmlPlaceHolderCard)
 
     def show_chassis_selection_dialog(self, main_content):
