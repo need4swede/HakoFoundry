@@ -1122,7 +1122,8 @@ class SystemOverview:
             with ui.element('div').classes('gap-0').style(
                 f'height: 98.9dvh; width: 70dvw; min-width: 1200px; min-height: 800px; '
                 f'display: grid; grid-template-areas: {grid_template_areas}; '
-                f'grid-template-rows: 4% 25% 25% 25% 21%;'
+                f'grid-template-rows: 4% 25% 25% 25% 21%; '
+                f'grid-template-columns: repeat(24, 1fr);'
             ) as grid_container:
 
                 # RPM, wattage, fans (unchanged)
