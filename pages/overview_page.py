@@ -18,6 +18,7 @@ class DriveButton(ui.button):
 
     def __init__(self, card, button_index, drive_hash) -> None:
         super().__init__()
+        self.classes('drive-button')
         self.selected = False
         self.card = card
         self.button_index = button_index
@@ -252,7 +253,9 @@ class SmlPlaceHolderCard(ui.element):
 class FadingDropdown(ui.element):
     """
     A fully integrated, chainable FadingDropdown component.
-    This version correctly uses inheritance and manual component construction.
+    This version correctly uses inheritance and manual component construction,
+    and adds the correct `fading-dropdown` class so it can be counter-rotated
+    in flipped backplane layouts.
     """
 
     def __init__(self,
@@ -263,37 +266,37 @@ class FadingDropdown(ui.element):
                  ) -> None:
         """
         :param text: The text to be displayed on the button.
-        :param container_classes: Default Tailwind classes for the surrounding container div.
-        :param button_props: Quasar props for the underlying button.
+        :param container_classes: Tailwind classes for the surrounding container div.
         :param button_color: The color of the button.
         :param icon: The name of an icon to be displayed on the button.
         """
-        # 2. We call the parent constructor, defining this component AS a 'div'.
         super().__init__('div')
 
-        # 'self' is now the container div. We apply the initial classes to it.
-        self.classes(container_classes).style(f'width: 87%;')
+        # Important: add fading-dropdown here in the SAME call
+        self.classes(container_classes + ' fading-dropdown').style('width: 87%;')
 
         self.is_visible = False
         self.hide_timer: Optional[ui.timer] = None
 
-        # 3. We build the inner elements directly inside 'self'.
         with self:
-            # 4. We manually construct the button and menu for full control.
-            self.button = ui.button(text, color=button_color, icon=icon).props('outline color="white"')
-            self.button.classes('opacity-0 transition-opacity duration-300').style('visibility: hidden;')
+            self.button = (
+                ui.button(text, color=button_color, icon=icon)
+                .props('outline color="white"')
+                .classes('fading-dropdown-btn opacity-0 transition-opacity duration-300')
+                .style('visibility: hidden;')
+            )
 
             with self.button:
                 self.menu = ui.menu().props('fit')
 
-        # Attach event handlers to 'self' (the div) and the menu we created.
+        # Hover events
         self.on('mouseover', self._handle_show)
         self.on('mouseleave', self._handle_hide)
         self.menu.on('mouseover', self._handle_show)
         self.menu.on('mouseleave', self._handle_hide)
 
     def _update_visibility_classes(self) -> None:
-        """Manually update the button's opacity classes based on the current state."""
+        """Update the button's opacity classes based on current state."""
         if self.is_visible:
             self.button.classes(add='opacity-100', remove='opacity-0')
             self.button.style('visibility: visible;')
@@ -302,20 +305,20 @@ class FadingDropdown(ui.element):
             self.button.style('visibility: hidden;')
 
     def _handle_show(self) -> None:
-        """Show the button and manually trigger the UI update."""
+        """Show the button and cancel any pending hide timer."""
         if self.hide_timer:
             self.hide_timer.cancel()
         self.is_visible = True
         self._update_visibility_classes()
 
     def _handle_hide(self) -> None:
-        """Start a timer to hide the button."""
+        """Start a timer to hide the button after a short delay."""
         if self.hide_timer:
             self.hide_timer.cancel()
         self.hide_timer = ui.timer(0.1, self._set_hidden, once=True)
 
     def _set_hidden(self) -> None:
-        """Set the state to hidden and manually trigger the UI update."""
+        """Hide the button and reset the timer."""
         self.is_visible = False
         self.hide_timer = None
         self._update_visibility_classes()
@@ -418,6 +421,26 @@ class SystemOverview:
             print("Warning: Fan control service not initialized, initializing now...")
             globals.initFanControlService()
             self.fan_control_service = globals.fan_control_service
+
+    def should_flip_backplane(self, i: int) -> bool:
+        if globals.layoutState.get_chassis_orientation() != "inverted":
+            return False
+        chassis = globals.layoutState.get_product()
+        if chassis == "Hako-Core":
+            return i in {0, 1, 3, 4, 6, 7, 9, 10}
+        if chassis == "Hako-Core Mini":
+            return i in {0, 1, 2, 3, 4, 5}
+        return False
+
+    def should_rotate_backplane(self, index: int) -> bool:
+        if globals.layoutState.get_chassis_orientation() != "inverted":
+            return False
+        chassis = globals.layoutState.get_product()
+        if chassis == "Hako-Core":
+            return index in {0,1, 3,4, 6,7, 9,10}
+        if chassis == "Hako-Core Mini":
+            return index in {0,1, 2,3, 4,5}
+        return False
 
     def set_slider_value_without_callback(self, slider_index: int, value: float):
         """Set slider value without triggering the change callback."""
@@ -905,93 +928,97 @@ class SystemOverview:
                 ).classes('w-full')
 
     def setup_backplane_buttons(self, card, backplane: Backplane, index):
-        """Set up buttons for different backplane types."""
+        """Set up buttons for different backplane types (flip parent container in inverted mode)."""
         card.clear()
-        cage = "" # Can be default or reversed
-        backplane_type = backplane.product
-        if (card.tabsRight == False): # If even, 2nd row, use other cage orientation
+        cage = ""  # "" (default) or "-rotated"
+        backplane_type = backplane.product if backplane else None
+        if card.tabsRight is False:  # 2nd row: use rotated cage orientation
             cage = "-rotated"
 
-        # Get chassis orientation to determine button order for SML2+2
-        orientation = globals.layoutState.get_chassis_orientation()
+        # --- determine if this backplane should be rotated in inverted orientation ---
+        def should_flip(i: int) -> bool:
+            if globals.layoutState.get_chassis_orientation() != "inverted":
+                return False
+            chassis = globals.layoutState.get_product()
+            if chassis == "Hako-Core":
+                return i in {0, 1, 3, 4, 6, 7, 9, 10}
+            if chassis == "Hako-Core Mini":
+                return i in {0, 1, 2, 3, 4, 5}
+            return False
 
-        # Configure button order for SML2+2 based on orientation
-        if orientation == "inverted":
-            # Inverted: SSD buttons on top (positions 0,1), HDD buttons on bottom (positions 2,3)
-            sml_button_order = [SmlSSDButton, SmlSSDButton, HDDButton, HDDButton]
-        else:
-            # Normal: HDD buttons on top (positions 0,1), SSD buttons on bottom (positions 2,3)
-            sml_button_order = [HDDButton, HDDButton, SmlSSDButton, SmlSSDButton]
+        need_flip = should_flip(index)
+
+        # order for SML2+2
+        sml_button_order = [HDDButton, HDDButton, SmlSSDButton, SmlSSDButton]
 
         backplane_configs = {
-            "STD4HDD": {
-                "buttons": 4,
-                "button_class": HDDButton,
-                "layout": "single_column"
-            },
-            "STD12SSD": {
-                "buttons": 12,
-                "button_class": StdSSDButton,
-                "layout": "two_column"
-            },
-            "SML2+2": {
-                "buttons": 4,
-                "button_class": sml_button_order,
-                "layout": "mixed"
-            }
+            "STD4HDD": {"buttons": 4, "button_class": HDDButton, "layout": "single_column"},
+            "STD12SSD": {"buttons": 12, "button_class": StdSSDButton, "layout": "two_column"},
+            "SML2+2": {"buttons": 4, "button_class": sml_button_order, "layout": "mixed"},
         }
 
-        config = backplane_configs.get(backplane_type)
-        if not config:
+        if not backplane_type or backplane_type not in backplane_configs:
             return
+
+        config = backplane_configs[backplane_type]
+
+        # --- apply flip on the parent card element ---
+        card.classes(add="bp-rotatable" + (" flip-180" if need_flip else ""))
 
         with card:
             if config["layout"] == "single_column":
-                with ui.element('div').classes(f'f-shape{cage} h-full flex items-center justify-center p-1'):
+                with ui.element('div').classes(
+                    f"f-shape{cage} h-full flex items-center justify-center p-1"
+                ):
                     with ui.element('col').classes('col h-full'):
                         for i in range(config["buttons"]):
                             button = config["button_class"](card, i, backplane.drives_hashes[i])
+                            button.classes('drive-button')
                             button.on_click_handler = self.select_drive
                             button.on('click', lambda b=button: self.select_drive(b))
                             card.buttons.append(button.classes('truncate'))
-
                     ui.element('div').classes(f'extension-patch patch-top-arm-bottom{cage}')
                     ui.element('div').classes(f'extension-patch patch-mid-arm-top{cage}')
                     ui.element('div').classes(f'extension-patch patch-mid-arm-bottom{cage}')
 
             elif config["layout"] == "two_column":
-                with ui.element('div').classes(f'f-shape{cage} grid grid-cols-2 gap-1 flex items-center justify-center h-full p-1'):
+                with ui.element('div').classes(
+                    f"f-shape{cage} grid grid-cols-2 gap-1 flex items-center justify-center h-full p-1"
+                ):
                     with ui.element('col1').classes('col-span-1 h-full'):
                         for i in range(6):
                             button = config["button_class"](card, i, backplane.drives_hashes[i])
+                            button.classes('drive-button')
                             button.on_click_handler = self.select_drive
                             button.on('click', lambda b=button: self.select_drive(b))
                             card.buttons.append(button.classes('truncate'))
                     with ui.element('col2').classes('col-span-1 h-full'):
                         for i in range(6, 12):
                             button = config["button_class"](card, i, backplane.drives_hashes[i])
+                            button.classes('drive-button')
                             button.on_click_handler = self.select_drive
                             button.on('click', lambda b=button: self.select_drive(b))
                             card.buttons.append(button.classes('truncate'))
-
                     ui.element('div').classes(f'extension-patch patch-top-arm-bottom{cage}')
                     ui.element('div').classes(f'extension-patch patch-mid-arm-top{cage}')
                     ui.element('div').classes(f'extension-patch patch-mid-arm-bottom{cage}')
 
             elif config["layout"] == "mixed":
-                with ui.element('div').classes(f'f-shape{cage} h-full flex items-center justify-center p-1'):
+                with ui.element('div').classes(
+                    f"f-shape{cage} h-full flex items-center justify-center p-1"
+                ):
                     with ui.element('col').classes('col h-full flex justify-center'):
                         for i in range(4):
-                            button_class = config["button_class"][i]
-                            button = button_class(card, i, backplane.drives_hashes[i])
+                            cls = config["button_class"][i]
+                            button = cls(card, i, backplane.drives_hashes[i])
+                            button.classes('drive-button')
                             button.on_click_handler = self.select_drive
                             button.on('click', lambda b=button: self.select_drive(b))
-                            if button_class == SmlSSDButton:  # SSD buttons
+                            if cls == SmlSSDButton:
                                 button.props('no-wrap')
-                            else: # HDD buttons
+                            else:
                                 button.style('height: 28%;')
                             card.buttons.append(button)
-
                     ui.element('div').classes(f'extension-patch patch-top-arm-bottom{cage}')
                     ui.element('div').classes(f'extension-patch patch-mid-arm-top{cage}')
                     ui.element('div').classes(f'extension-patch patch-mid-arm-bottom{cage}')
@@ -1006,78 +1033,65 @@ class SystemOverview:
                 )
 
     def add_backplane_button(self, card, card_class):
-        """Add backplane selection button to empty card."""
         card.clear()
         element_justified = ""
-        if (card.tabsRight == False): # If even, 2nd row, use other cage orientation
-                element_justified = " justify-content:end;"
-        # Clear any selected buttons
+        if card.tabsRight is False:
+            element_justified = " justify-content:end;"
+
+        # DO NOT remove bp-rotatable/flip-180; just leave classes as-is
         for button in card.buttons:
             if button.selected:
                 self.last_button = None
                 self.right_drawer.hide()
         card.buttons.clear()
 
-        # Get chassis orientation to determine backplane options
         orientation = globals.layoutState.get_chassis_orientation()
         chassis_type = globals.layoutState.get_product()
 
-        # Determine if this card should show standard options based on orientation and position
         if orientation == "normal":
-            # Normal orientation: use original card class logic
             show_standard_options = (card_class == StdPlaceHolderCard)
         else:
-            # Inverted orientation: swap only the top and bottom rows
             if chassis_type == "Hako-Core":
-                if card.index in {0, 1, 2}:  # Top row - give 2+2 options (was standard)
+                if card.index in {0, 1}:
                     show_standard_options = False
-                elif card.index in {9, 10, 11}:  # Bottom row - give standard options (was 2+2)
+                elif card.index in {9, 10}:
                     show_standard_options = True
-                else:  # All middle positions (3,4,5,6,7,8) - keep original standard options
+                else:
                     show_standard_options = True
             elif chassis_type == "Hako-Core Mini":
-                if card.index in {0, 1}:  # Top row - give 2+2 options (was standard)
+                if card.index in {0, 1}:
                     show_standard_options = False
-                elif card.index in {6, 7}:  # Bottom row - give standard options (was 2+2)
+                elif card.index in {6, 7}:
                     show_standard_options = True
-                else:  # All middle positions (2,3,4,5) - keep original standard options
+                else:
                     show_standard_options = True
             else:
-                # Fallback to original logic
                 show_standard_options = (card_class == StdPlaceHolderCard)
+
         with card.style(f'{element_justified}'):
             with FadingDropdown('Add Backplane', icon='add').menu:
                 if show_standard_options:
-                    # Show standard backplane options (4 HDD, 12 SSD)
                     ui.menu_item(
                         '4 HDD Backplane',
                         on_click=lambda: self.setup_backplane_buttons(
-                            card,
-                            globals.layoutState.insert_backplane(card, "STD4HDD"),
-                            card.index
+                            card, globals.layoutState.insert_backplane(card, "STD4HDD"), card.index
                         )
                     )
                     ui.menu_item(
                         '12 SSD Backplane',
                         on_click=lambda: self.setup_backplane_buttons(
-                            card,
-                            globals.layoutState.insert_backplane(card, "STD12SSD"),
-                            card.index
+                            card, globals.layoutState.insert_backplane(card, "STD12SSD"), card.index
                         )
                     )
                 else:
-                    # Show small backplane options (2+2 only)
                     ui.menu_item(
                         '2+2 Backplane',
                         on_click=lambda: self.setup_backplane_buttons(
-                            card,
-                            globals.layoutState.insert_backplane(card, "SML2+2"),
-                            card.index
+                            card, globals.layoutState.insert_backplane(card, "SML2+2"), card.index
                         )
                     )
 
     def create_chassis_layout(self, card: ui.element, chassis_type: str):
-        """Create chassis layout based on type using explicit grid positioning."""
         if globals.layoutState.get_product() is None:
             globals.layoutState.set_product(chassis_type)
 
@@ -1085,10 +1099,7 @@ class SystemOverview:
         self.fan_buttons_list.clear()
         self.wattage_card_list.clear()
 
-        # Get chassis orientation
         orientation = globals.layoutState.get_chassis_orientation() or "normal"
-
-        # Get layout configuration
         layout_config = self.layout_manager.get_layout_config(chassis_type, orientation)
         if not layout_config:
             print(f"No layout config found for {chassis_type} {orientation}")
@@ -1096,7 +1107,6 @@ class SystemOverview:
 
         grid_template_areas = self.layout_manager.get_grid_template_areas(chassis_type, orientation)
 
-        # Create a grid container with explicit positioning
         with card:
             with ui.element('div').classes('gap-0').style(
                 f'height: 98.9dvh; width: 70dvw; min-width: 1200px; min-height: 800px; '
@@ -1104,52 +1114,54 @@ class SystemOverview:
                 f'grid-template-rows: 4% 25% 25% 25% 21%;'
             ) as grid_container:
 
-                # Create RPM cards
+                # RPM, wattage, fans (unchanged)
                 for i, position in enumerate(layout_config["rpm_positions"]):
                     RPMCard(i, position)
-
-                # Create wattage cards
                 for i, position in enumerate(layout_config["watt_positions"]):
                     self.wattage_card_list.append(WattageCard(i, position))
-
-                # Create fan columns
                 for i, position in enumerate(layout_config["fan_positions"]):
                     fan_row = FanRowButtons(self.select_fans, position)
                     self.fan_buttons_list.extend(fan_row.row_Of_Buttons)
 
-                # Create backplane cards
+                # Backplanes
                 if not globals.layoutState.is_empty():
                     backplane_list = globals.layoutState.get_backplanes()
 
-                    # Standard backplane cards
+                    # STD cards
                     for i, position in enumerate(layout_config["backplane_positions"]):
                         bp = backplane_list[i] if i < len(backplane_list) else None
                         card_widget = StdPlaceHolderCard(i, bp, position)
+                        # flip the parent card NOW, even if empty
+                        card_widget.classes(add="bp-rotatable" + (" flip-180" if self.should_flip_backplane(i) else ""))
                         if bp:
                             self.setup_backplane_buttons(card_widget, bp, i)
                         else:
                             self.add_backplane_button(card_widget, StdPlaceHolderCard)
 
-                    # Small cards
+                    # SML cards
                     start_idx = len(layout_config["backplane_positions"])
                     for i, position in enumerate(layout_config["small_positions"]):
                         bp_index = start_idx + i
                         bp = backplane_list[bp_index] if bp_index < len(backplane_list) else None
                         card_widget = SmlPlaceHolderCard(bp_index, bp, position)
+                        card_widget.classes(add="bp-rotatable" + (" flip-180" if self.should_flip_backplane(bp_index) else ""))
                         if bp:
                             self.setup_backplane_buttons(card_widget, bp, bp_index)
                         else:
                             self.add_backplane_button(card_widget, SmlPlaceHolderCard)
                 else:
-                    # Create empty cards
+                    # Empty STD cards
                     for i, position in enumerate(layout_config["backplane_positions"]):
                         card_widget = StdPlaceHolderCard(i, None, position)
+                        card_widget.classes(add="bp-rotatable" + (" flip-180" if self.should_flip_backplane(i) else ""))
                         self.add_backplane_button(card_widget, StdPlaceHolderCard)
 
-                    # Empty small cards
+                    # Empty SML cards
                     start_idx = len(layout_config["backplane_positions"])
                     for i, position in enumerate(layout_config["small_positions"]):
-                        card_widget = SmlPlaceHolderCard(start_idx + i, None, position)
+                        idx = start_idx + i
+                        card_widget = SmlPlaceHolderCard(idx, None, position)
+                        card_widget.classes(add="bp-rotatable" + (" flip-180" if self.should_flip_backplane(idx) else ""))
                         self.add_backplane_button(card_widget, SmlPlaceHolderCard)
 
     def show_chassis_selection_dialog(self, main_content):
