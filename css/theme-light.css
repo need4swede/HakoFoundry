@@ -25,6 +25,24 @@ html, body, .q-page, .nicegui-content {
   border: 1px solid #e5e7eb !important; /* gray-200 */
 }
 
+/* Tailwind utility overrides used in app */
+.bg-neutral-900 { background-color: #f3f4f6 !important; }
+.text-gray-300 { color: #374151 !important; }
+.text-gray-400 { color: #6b7280 !important; }
+.text-gray-500 { color: #6b7280 !important; }
+.border-white { border-color: #e5e7eb !important; }
+.border-neutral-600 { border-color: #d1d5db !important; }
+.border-[#ffdd00] { border-color: #ffdd00 !important; }
+
+/* Drive buttons and content text */
+.drive-button, .drive-button * { color: #111827 !important; }
+.drive-button.q-btn { border-color: #e5e7eb !important; background-color: #ffffff !important; }
+.q-btn--outline.text-white {
+  color: #111827 !important;
+  border-color: #9ca3af !important; /* gray-400 */
+  background-color: #ffffff !important;
+}
+
 /* Tables */
 .q-table, .q-table th, .q-table td {
   color: #111827 !important;
@@ -84,3 +102,48 @@ a, .q-link {
   border-top: 1px solid #e5e7eb !important;
 }
 
+/* Pseudo-extend columns (side rails) */
+.pseudo-extend,
+.pseudo-extend-inverted {
+  --base-color: #f3f4f6 !important;   /* column background */
+  --border-color: #e5e7eb !important; /* column borders */
+  color: #111827 !important;
+}
+
+/* F-shape backplane surfaces */
+.f-shape,
+.f-shape::before,
+.f-shape::after,
+.f-shape-rotated,
+.f-shape-rotated::before,
+.f-shape-rotated::after,
+.extension-patch,
+.extension-patch-rotated {
+  background-color: #e5e7eb !important;
+}
+.extension-patch::after,
+.extension-patch-rotated::after {
+  background-color: #fafafa !important; /* page background for scoop */
+}
+
+/* Drive selection modal/card */
+.pseudo-extend-drives {
+  --base-color: #f9fafb !important;
+  --border-color: #e5e7eb !important;
+  background: var(--base-color) !important;
+  color: #111827 !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Number inputs (override dark component stylesheet) */
+.number-input {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  border-color: #d1d5db !important;
+}
+
+/* Menus and popups */
+.q-menu, .q-dialog__inner, .q-dialog-plugin, .q-panel, .q-banner, .q-list, .q-item {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
