@@ -147,3 +147,15 @@ a, .q-link {
   background-color: #ffffff !important;
   color: #111827 !important;
 }
+
+/* Keep brand yellow but improve contrast in light mode */
+.text-yellowhako,
+.q-icon.text-yellowhako,
+.material-symbols-outlined.text-yellowhako {
+  color: #ffdd00 !important; /* ensure yellow is preserved */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.45), 0 0 2px rgba(0,0,0,0.35);
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25));
+}
+
+/* In case yellow icons sit inside drive buttons, keep them yellow */
+.drive-button .text-yellowhako { color: #ffdd00 !important; }
