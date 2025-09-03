@@ -22,7 +22,8 @@ html, body, .q-page, .nicegui-content {
 .q-card {
   background-color: #ffffff !important;
   color: #111827 !important;
-  border: 1px solid #e5e7eb !important; /* gray-200 */
+  border: 1px solid #d1d5db !important; /* gray-300 for stronger separation */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.10) !important;
 }
 
 /* Tailwind utility overrides used in app */
@@ -30,7 +31,7 @@ html, body, .q-page, .nicegui-content {
 .text-gray-300 { color: #374151 !important; }
 .text-gray-400 { color: #6b7280 !important; }
 .text-gray-500 { color: #6b7280 !important; }
-.border-white { border-color: #e5e7eb !important; }
+.border-white { border-color: #cbd5e1 !important; }
 .border-neutral-600 { border-color: #d1d5db !important; }
 .border-[#ffdd00] { border-color: #ffdd00 !important; }
 
@@ -49,15 +50,18 @@ html, body, .q-page, .nicegui-content {
   background-color: #ffffff !important;
 }
 .q-table thead tr th {
-  border-bottom: 1px solid #e5e7eb !important;
+  background-color: #f8fafc !important;
+  border-bottom: 1px solid #d1d5db !important;
 }
 .q-table tbody tr td {
-  border-bottom: 1px solid #f3f4f6 !important; /* gray-100 */
+  border-bottom: 1px solid #eef2f7 !important; /* subtle row separators */
 }
+.q-table tbody tr:nth-child(even) td { background-color: #fafafa !important; }
+.q-table tbody tr:hover td { background-color: #f3f4f6 !important; }
 
 /* Separators */
 .q-separator {
-  background: #e5e7eb !important;
+  background: #d1d5db !important;
 }
 
 /* Buttons and labels using dark-theme text */
@@ -99,14 +103,14 @@ a, .q-link {
 .q-table__bottom {
   background-color: #ffffff !important;
   color: #111827 !important;
-  border-top: 1px solid #e5e7eb !important;
+  border-top: 1px solid #d1d5db !important;
 }
 
 /* Pseudo-extend columns (side rails) */
 .pseudo-extend,
 .pseudo-extend-inverted {
   --base-color: #f3f4f6 !important;   /* column background */
-  --border-color: #e5e7eb !important; /* column borders */
+  --border-color: #cbd5e1 !important; /* stronger column borders */
   color: #111827 !important;
 }
 
@@ -121,6 +125,7 @@ a, .q-link {
 .extension-patch-rotated {
   background-color: #e5e7eb !important;
 }
+.f-shape, .f-shape-rotated { box-shadow: inset 0 0 0 1px #d1d5db !important; }
 .extension-patch::after,
 .extension-patch-rotated::after {
   background-color: #fafafa !important; /* page background for scoop */
@@ -129,7 +134,7 @@ a, .q-link {
 /* Drive selection modal/card */
 .pseudo-extend-drives {
   --base-color: #f9fafb !important;
-  --border-color: #e5e7eb !important;
+  --border-color: #d1d5db !important;
   background: var(--base-color) !important;
   color: #111827 !important;
   border-color: var(--border-color) !important;
@@ -146,6 +151,28 @@ a, .q-link {
 .q-menu, .q-dialog__inner, .q-dialog-plugin, .q-panel, .q-banner, .q-list, .q-item {
   background-color: #ffffff !important;
   color: #111827 !important;
+}
+.q-menu, .q-dialog__inner, .q-dialog-plugin { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15), 0 4px 6px -4px rgba(0,0,0,0.12) !important; }
+.q-item:hover { background-color: #f3f4f6 !important; }
+
+/* Left drawer contrast */
+.q-drawer {
+  border-right: 1px solid #d1d5db !important;
+  box-shadow: 2px 0 6px rgba(0,0,0,0.06) inset;
+}
+
+/* Drive buttons hover and subtle depth */
+.drive-button.q-btn {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+}
+.drive-button.q-btn:hover { background-color: #f8fafc !important; }
+
+/* Fading dropdown container contrast */
+.fading-dropdown {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: inset 0 0 0 1px #e5e7eb !important;
 }
 
 /* Keep brand yellow but improve contrast in light mode */
