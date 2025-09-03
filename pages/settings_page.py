@@ -290,6 +290,20 @@ def settingsPage():
                         on_change=lambda e: globals.layoutState.set_units(unit_options[e.value])
                     ).style('justify-content:end;')
 
+                    # Theme selection
+                    ui.label('Theme:').classes('flex justify-start items-center')
+                    theme_map = {'Dark': 'dark', 'Light': 'light'}
+                    current_theme_display = next((k for k, v in theme_map.items() if v == globals.layoutState.get_theme()), 'Dark')
+                    def _on_theme_change(e):
+                        globals.layoutState.set_theme(theme_map[e.value])
+                        ui.notify('Theme updated. Reload to apply.', position='bottom-right', type='info', group=False)
+
+                    ui.select(
+                        list(theme_map.keys()),
+                        value=current_theme_display,
+                        on_change=_on_theme_change
+                    ).style('justify-content:end;')
+
                 ui.separator().classes('my-4')
 
                 # Clear All Backplanes Section

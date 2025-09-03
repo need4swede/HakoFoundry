@@ -454,6 +454,7 @@ class Chassis:
         self.chassis_orientation = False  # False for normal, True for inverted
         self.units = "C"  # Temperature units: "C" for Celsius, "F" for Fahrenheit
         self.pb_swap = False # Powerboard swap preference
+        self.theme = "dark"  # UI theme: "dark" or "light"
 
         if config_file:
             self._load_config()
@@ -485,6 +486,7 @@ class Chassis:
                 self.chassis_orientation = bool(orientation_value)
             self.units = options.get("units", "C")
             self.pb_swap = options.get("pb_swap", False)
+            self.theme = options.get("theme", "dark")
 
             # Ensure we have the right number of backplane slots
             while len(backplanes_data) < self.MAX_BACKPLANES:
@@ -559,6 +561,17 @@ class Chassis:
     def get_pb_swap(self) -> bool:
         """Get powerboard swap option."""
         return self.pb_swap
+
+    def set_theme(self, theme: str) -> None:
+        """Set UI theme ("dark" or "light")."""
+        if theme not in ["dark", "light"]:
+            raise ValueError("Theme must be 'dark' or 'light'")
+        self.theme = theme
+        self.save_config()
+
+    def get_theme(self) -> str:
+        """Get UI theme ("dark" or "light")."""
+        return self.theme
 
     def chassis_is_inverted(self) -> bool:
         """Get chassis orientation setting. Returns True if inverted, False if normal."""
@@ -657,7 +670,8 @@ class Chassis:
                         "hide_multi_curve_dialog": self.hide_multi_curve_dialog,
                         "chassis_orientation": self.chassis_orientation,
                         "units": self.units,
-                        "pb_swap": self.pb_swap
+                        "pb_swap": self.pb_swap,
+                        "theme": self.theme
                     }
             }
 

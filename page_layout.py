@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from nicegui import ui, app
+import globals
 import authentication
 """ The main layout for every page. Left drawer mainly."""
 @contextmanager
@@ -14,6 +15,16 @@ def frame(navtitle: str):
     
     # Add CSS file reference for layout styles
     ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/layout.css">')
+
+    # Conditionally add light theme overrides on top of existing styles
+    try:
+        if globals.layoutState and getattr(globals.layoutState, 'get_theme', None) and globals.layoutState.get_theme() == 'light':
+            # Disable Quasar dark mode and apply our light overrides
+            ui.dark_mode().disable()
+            ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/theme-light.css">')
+    except Exception:
+        # Fail silently if theme is unavailable
+        pass
 
     # Initializing defaults
     ui.icon.default_props('color=yellowhako')

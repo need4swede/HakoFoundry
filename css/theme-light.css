@@ -1,0 +1,86 @@
+/* Light theme overrides loaded after base styles */
+
+/* Global backgrounds and text */
+html, body, .q-page, .nicegui-content {
+  background-color: #fafafa !important;
+  color: #111827 !important; /* gray-900 */
+}
+
+/* Left drawer and navigation */
+.q-drawer {
+  background-color: #f5f5f5 !important; /* gray-100 */
+  color: #111827 !important;
+}
+.q-drawer .q-item, .q-drawer .q-item__section, .q-drawer .q-item__label {
+  color: #111827 !important;
+}
+.q-drawer .material-symbols-outlined {
+  color: #111827 !important;
+}
+
+/* Cards and surfaces */
+.q-card {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #e5e7eb !important; /* gray-200 */
+}
+
+/* Tables */
+.q-table, .q-table th, .q-table td {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+}
+.q-table thead tr th {
+  border-bottom: 1px solid #e5e7eb !important;
+}
+.q-table tbody tr td {
+  border-bottom: 1px solid #f3f4f6 !important; /* gray-100 */
+}
+
+/* Separators */
+.q-separator {
+  background: #e5e7eb !important;
+}
+
+/* Buttons and labels using dark-theme text */
+.text-white { /* invert typical dark theme white text */
+  color: #111827 !important;
+}
+
+/* Generic labels and form controls */
+label, .q-label, .q-field__label, .q-item__label, .q-btn__content, .q-banner__content {
+  color: #111827 !important;
+}
+
+/* Inputs */
+.q-field__native, .q-field__control, .q-field__marginal {
+  color: #111827 !important;
+}
+.q-field__control, .q-select__dialog, .q-menu {
+  background-color: #ffffff !important;
+}
+
+/* Links */
+a, .q-link {
+  color: #1d4ed8 !important; /* blue-700 */
+}
+
+/* Notifications */
+.q-notification {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+/* Sliders and controls */
+.q-slider__pin-text, .q-slider__marker-label, .q-slider__thumb .q-icon {
+  color: #111827 !important;
+}
+
+/* Tables pagination/footer */
+.q-table__bottom {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  border-top: 1px solid #e5e7eb !important;
+}
+
