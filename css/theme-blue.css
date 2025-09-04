@@ -1,0 +1,224 @@
+/* Modern Slate Theme: overlays on dark base for clarity and depth */
+
+/* Global */
+html,
+body,
+.q-page,
+.nicegui-content {
+  background-color: #0f172a !important;
+  /* slate-900 */
+  color: #e5e7eb !important;
+  /* slate-200 */
+}
+
+/* Drawer */
+.q-drawer {
+  background-color: #0b1220 !important;
+  color: #e5e7eb !important;
+  border-right: 1px solid #1f2937 !important;
+}
+
+.q-drawer .q-item,
+.q-drawer .q-item__section,
+.q-drawer .q-item__label {
+  color: #e5e7eb !important;
+}
+
+.q-drawer .material-symbols-outlined {
+  color: #e5e7eb !important;
+}
+
+/* Cards & surfaces */
+.q-card {
+  background-color: #111827 !important;
+  /* slate-900 panel */
+  color: #e5e7eb !important;
+  border: 1px solid #1f2937 !important;
+  /* slate-800 border */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Utility overrides used by app */
+.bg-neutral-900 {
+  background-color: #0f172a !important;
+}
+
+.text-gray-300 {
+  color: #cbd5e1 !important;
+}
+
+/* slate-300 */
+.text-gray-400 {
+  color: #94a3b8 !important;
+}
+
+/* slate-400 */
+.text-gray-500 {
+  color: #64748b !important;
+}
+
+/* slate-500 */
+.border-white {
+  border-color: #94a3b8 !important;
+}
+
+/* subtle vs pure white */
+.border-neutral-600 {
+  border-color: #334155 !important;
+}
+
+/* slate-700 */
+.border-[#ffdd00] {
+  border-color: #ffdd00 !important;
+}
+
+/* Buttons */
+.drive-button,
+.drive-button * {
+  color: #e5e7eb !important;
+}
+
+.drive-button.q-btn {
+  border-color: #334155 !important;
+  background-color: #0f172a !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25) !important;
+}
+
+.drive-button.q-btn:hover {
+  background-color: #111827 !important;
+}
+
+.q-btn--outline.text-white {
+  color: #e5e7eb !important;
+  border-color: #475569 !important;
+  background-color: transparent !important;
+}
+
+/* Tables */
+.q-table,
+.q-table th,
+.q-table td {
+  color: #e5e7eb !important;
+  background-color: #0f172a !important;
+}
+
+.q-table thead tr th {
+  background-color: #111827 !important;
+  border-bottom: 1px solid #1f2937 !important;
+}
+
+.q-table tbody tr td {
+  border-bottom: 1px solid #1f2937 !important;
+}
+
+.q-table tbody tr:nth-child(even) td {
+  background-color: #0e1628 !important;
+}
+
+.q-table tbody tr:hover td {
+  background-color: #162033 !important;
+}
+
+.q-table__bottom {
+  background-color: #111827 !important;
+  color: #e5e7eb !important;
+  border-top: 1px solid #1f2937 !important;
+}
+
+/* Separators */
+.q-separator {
+  background: #1f2937 !important;
+}
+
+/* Generic labels and form controls */
+label,
+.q-label,
+.q-field__label,
+.q-item__label,
+.q-btn__content,
+.q-banner__content {
+  color: #e5e7eb !important;
+}
+
+/* Inputs */
+.q-field__native,
+.q-field__control,
+.q-field__marginal {
+  color: #e5e7eb !important;
+}
+
+.q-field__control,
+.q-select__dialog,
+.q-menu {
+  background-color: #0f172a !important;
+  border-color: #1f2937 !important;
+}
+
+.number-input {
+  background-color: #0f172a !important;
+  color: #e5e7eb !important;
+  border-color: #334155 !important;
+}
+
+.q-menu,
+.q-dialog__inner,
+.q-dialog-plugin {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -4px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Menus & dialogs */
+.q-menu,
+.q-dialog__inner,
+.q-dialog-plugin,
+.q-panel,
+.q-banner,
+.q-list,
+.q-item {
+  background-color: #111827 !important;
+  color: #e5e7eb !important;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.45), 0 6px 8px rgba(0, 0, 0, 0.35) !important;
+}
+
+.q-item:hover {
+  background-color: #0f1c2f !important;
+}
+
+/* Chassis rails and backplanes */
+.pseudo-extend,
+.pseudo-extend-inverted {
+  --base-color: #0e1628 !important;
+  /* rail fill */
+  --border-color: #1f2937 !important;
+  /* rail border */
+  color: #e5e7eb !important;
+}
+
+.f-shape,
+.f-shape::before,
+.f-shape::after,
+.f-shape-rotated,
+.f-shape-rotated::before,
+.f-shape-rotated::after,
+.extension-patch,
+.extension-patch-rotated {
+  background-color: #1e2b48 !important;
+  /* backplane surface */
+}
+
+.f-shape,
+.f-shape-rotated {
+  box-shadow: inset 0 0 0 1px #1f2937 !important;
+}
+
+.extension-patch::after,
+.extension-patch-rotated::after {
+  background-color: #0f172a !important;
+}
+
+/* Brand yellow: keep it vibrant on dark surfaces */
+.text-yellowhako,
+.q-icon.text-yellowhako,
+.material-symbols-outlined.text-yellowhako {
+  color: #ffdd00 !important;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}

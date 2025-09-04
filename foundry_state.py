@@ -563,9 +563,9 @@ class Chassis:
         return self.pb_swap
 
     def set_theme(self, theme: str) -> None:
-        """Set UI theme ("dark" or "light")."""
-        if theme not in ["dark", "light"]:
-            raise ValueError("Theme must be 'dark' or 'light'")
+        """Set UI theme (e.g., 'dark', 'light', 'modern')."""
+        if theme not in ["dark", "light", "modern"]:
+            raise ValueError("Theme must be 'dark', 'light', or 'modern'")
         self.theme = theme
         self.save_config()
 

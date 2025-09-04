@@ -12,16 +12,22 @@ def frame(navtitle: str):
 
     # Set up static file serving for CSS
     app.add_static_files('/css', 'css')
-    
+
     # Add CSS file reference for layout styles
     ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/layout.css">')
 
     # Conditionally add light theme overrides on top of existing styles
     try:
-        if globals.layoutState and getattr(globals.layoutState, 'get_theme', None) and globals.layoutState.get_theme() == 'light':
-            # Disable Quasar dark mode and apply our light overrides
-            ui.dark_mode().disable()
-            ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/theme-light.css">')
+        if globals.layoutState and getattr(globals.layoutState, 'get_theme', None):
+            theme = globals.layoutState.get_theme()
+            if theme == 'light':
+                # Disable Quasar dark mode and apply our light overrides
+                ui.dark_mode().disable()
+                ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/theme-light.css">')
+            elif theme == 'blue':
+                # Ensure dark mode base and apply modern slate overrides
+                ui.dark_mode().enable()
+                ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/theme-blue.css">')
     except Exception:
         # Fail silently if theme is unavailable
         pass
@@ -55,7 +61,7 @@ def frame(navtitle: str):
                 with ui.item_section():
                     ui.item_label('Fan Curves').classes('text-nowrap')
             ui.separator()
-            
+
             with ui.item().props('clickable').on_click(lambda: ui.navigate.to('/settings')):
                 with ui.item_section().props('avatar'):
                     ui.icon('settings').classes('material-symbols-outlined')
@@ -70,7 +76,7 @@ def frame(navtitle: str):
 
             # Spacer to push user info to bottom
             ui.space()
-            
+
             ui.separator()
             if authentication.get_current_user() == 'Guest':
                 with ui.item().props('clickable v-ripple'):
