@@ -4,6 +4,7 @@
 
 OUTPUT_FILE="docker-compose.yml"
 BACKUP_FILE="docker-compose.yml.backup"
+BUILD_LOCAL="false"
 
 # Colors for output
 RED='\033[0;31m'
@@ -222,7 +223,7 @@ if [ "$DETECTED_ARCH" = "arm64" ]; then
     echo "Choose image strategy for ARM64:"
     echo "  1. Multi-arch image (may use emulation)"
     echo "  2. Native ARM64 image"
-    echo "  3. Build your own"
+    echo "  3. Build your own (use local Dockerfile)"
     echo ""
 
     read -p "Select option (1/2/3) [2]: " IMAGE_CHOICE
@@ -238,8 +239,8 @@ if [ "$DETECTED_ARCH" = "arm64" ]; then
             echo "Selected: Native ARM64 image"
             ;;
         3)
-            read -p "Enter custom image: " DOCKER_IMAGE
-            echo "Selected: Custom image ($DOCKER_IMAGE)"
+            BUILD_LOCAL="true"
+            echo "Selected: Build from local Dockerfile"
             ;;
         *)
             DOCKER_IMAGE="hakoforge/hako-foundry:arm64"
@@ -247,17 +248,33 @@ if [ "$DETECTED_ARCH" = "arm64" ]; then
             ;;
     esac
 else
-    echo "Recommended image for $DETECTED_ARCH: hakoforge/hako-foundry:latest"
-    read -p "Use recommended image? [Y/n]: " USE_RECOMMENDED
-    USE_RECOMMENDED=${USE_RECOMMENDED:-y}
+    echo "Choose image strategy for $DETECTED_ARCH:"
+    echo "  1. Recommended multi-arch image (hakoforge/hako-foundry:latest)"
+    echo "  2. Enter custom image"
+    echo "  3. Build your own (use local Dockerfile)"
+    echo ""
 
-    if [[ "$USE_RECOMMENDED" =~ ^[Yy] ]]; then
-        DOCKER_IMAGE="hakoforge/hako-foundry:latest"
-        echo "Selected: multi-arch image"
-    else
-        read -p "Enter custom image: " DOCKER_IMAGE
-        echo "Selected: Custom image ($DOCKER_IMAGE)"
-    fi
+    read -p "Select option (1/2/3) [1]: " IMAGE_CHOICE
+    IMAGE_CHOICE=${IMAGE_CHOICE:-1}
+
+    case $IMAGE_CHOICE in
+        1)
+            DOCKER_IMAGE="hakoforge/hako-foundry:latest"
+            echo "Selected: multi-arch image"
+            ;;
+        2)
+            read -p "Enter custom image: " DOCKER_IMAGE
+            echo "Selected: Custom image ($DOCKER_IMAGE)"
+            ;;
+        3)
+            BUILD_LOCAL="true"
+            echo "Selected: Build from local Dockerfile"
+            ;;
+        *)
+            DOCKER_IMAGE="hakoforge/hako-foundry:latest"
+            echo "Defaulting to: multi-arch image"
+            ;;
+    esac
 fi
 echo ""
 
@@ -394,10 +411,25 @@ version: '3.8'
 
 services:
   hako-foundry:
+EOF
+
+# Use build or image depending on selection
+if [ "$BUILD_LOCAL" = "true" ]; then
+  cat >> "$OUTPUT_FILE" << EOF
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hako-foundry
+    restart: unless-stopped
+EOF
+else
+  cat >> "$OUTPUT_FILE" << EOF
     image: $DOCKER_IMAGE
     container_name: hako-foundry
     pull_policy: always
     restart: unless-stopped
+EOF
+fi
 
     # Port mapping
     ports:
@@ -473,7 +505,11 @@ echo -e "${GREEN}✓ Generated $OUTPUT_FILE successfully!${NC}"
 echo ""
 echo -e "${BLUE}Configuration Summary:${NC}"
 echo "  Architecture: $DETECTED_ARCH"
-echo "  Docker Image: $DOCKER_IMAGE"
+if [ "$BUILD_LOCAL" = "true" ]; then
+  echo "  Build: context=., dockerfile=Dockerfile"
+else
+  echo "  Docker Image: $DOCKER_IMAGE"
+fi
 echo "  Secret: $SECRET"
 echo "  Storage: $STORAGE_TYPE ($STORAGE_VALUE)"
 echo "  Port: $HOST_PORT"
@@ -490,15 +526,20 @@ fi
 echo ""
 
 # Architecture-specific notes
-if [ "$DETECTED_ARCH" = "arm64" ] && [[ "$DOCKER_IMAGE" == *"hakoforge"* ]]; then
-    echo -e "${CYAN}📝 ARM64 Notes:${NC}"
-    echo "  • Using proven ARM64-native image for optimal performance"
-    echo "  • No emulation overhead - runs natively on your ARM64 system"
-elif [ "$DETECTED_ARCH" = "arm64" ]; then
-    echo -e "${CYAN}📝 ARM64 Notes:${NC}"
-    echo "  • Using multi-arch image (may use emulation)"
-    echo "  • For better performance, consider the native ARM64 image:"
-    echo "    image: hakoforge/hako-foundry:arm64"
+if [ "$DETECTED_ARCH" = "arm64" ]; then
+    if [ "$BUILD_LOCAL" = "true" ]; then
+        echo -e "${CYAN}📝 ARM64 Notes:${NC}"
+        echo "  • Building locally from Dockerfile (ARM64 host)"
+    elif [[ "$DOCKER_IMAGE" == *"hakoforge"* ]]; then
+        echo -e "${CYAN}📝 ARM64 Notes:${NC}"
+        echo "  • Using proven ARM64-native image for optimal performance"
+        echo "  • No emulation overhead - runs natively on your ARM64 system"
+    else
+        echo -e "${CYAN}📝 ARM64 Notes:${NC}"
+        echo "  • Using multi-arch image (may use emulation)"
+        echo "  • For better performance, consider the native ARM64 image:"
+        echo "    image: hakoforge/hako-foundry:arm64"
+    fi
 fi
 echo ""
 
