@@ -2,6 +2,9 @@ from contextlib import contextmanager
 from nicegui import ui, app
 import globals
 import authentication
+import os
+from theme_utils import write_custom_css, generate_custom_css
+import time
 """ The main layout for every page. Left drawer mainly."""
 @contextmanager
 def frame(navtitle: str):
@@ -37,6 +40,29 @@ def frame(navtitle: str):
             elif theme == 'amber':
                 ui.dark_mode().enable()
                 ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/theme-amber.css">')
+            elif theme == 'custom':
+                # Load custom theme from persisted state; generate CSS and inject
+                ct = getattr(globals.layoutState, 'get_custom_theme', lambda: {})() or {}
+                dark_mode = bool(ct.get('dark_mode', True))
+                if dark_mode:
+                    ui.dark_mode().enable()
+                else:
+                    ui.dark_mode().disable()
+                # Ensure the css file exists for static serving as well
+                try:
+                    os.makedirs('css', exist_ok=True)
+                    write_custom_css(ct, path='css/theme-custom.css')
+                except Exception:
+                    # Fallback: inject as <style> if writing fails
+                    css = generate_custom_css(ct)
+                    ui.add_head_html(f'<style>{css}</style>')
+                else:
+                    # Cache-bust to ensure latest edits load
+                    try:
+                        v = int(os.path.getmtime('css/theme-custom.css'))
+                    except Exception:
+                        v = int(time.time())
+                    ui.add_head_html(f'<link rel="stylesheet" type="text/css" href="/css/theme-custom.css?v={v}">')
     except Exception:
         # Fail silently if theme is unavailable
         pass

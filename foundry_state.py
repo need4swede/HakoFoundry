@@ -454,7 +454,28 @@ class Chassis:
         self.chassis_orientation = False  # False for normal, True for inverted
         self.units = "C"  # Temperature units: "C" for Celsius, "F" for Fahrenheit
         self.pb_swap = False # Powerboard swap preference
-        self.theme = "dark"  # UI theme: "dark" or "light"
+        self.theme = "dark"  # UI theme: "dark", "light", built-ins, or "custom"
+        # Default custom theme settings (dark overlay baseline)
+        self.custom_theme = {
+            "dark_mode": True,
+            "global_bg": "#0f172a",
+            "global_text": "#e5e7eb",
+            "drawer_bg": "#0b1220",
+            "card_bg": "#111827",
+            "border": "#1f2937",
+            "zebra_even_bg": "#0e1628",
+            "hover_bg": "#162033",
+            "table_footer_bg": "#111827",
+            "input_bg": "#0f172a",
+            "menu_bg": "#111827",
+            "rail_base": "#0e1628",
+            "rail_border": "#1f2937",
+            "fshape_bg": "#1e2b48",
+            "number_border": "#334155",
+            "link_color": "#1d4ed8"
+        }
+        # Collection of saved custom themes by name
+        self.saved_themes = {}
 
         if config_file:
             self._load_config()
@@ -487,6 +508,9 @@ class Chassis:
             self.units = options.get("units", "C")
             self.pb_swap = options.get("pb_swap", False)
             self.theme = options.get("theme", "dark")
+            # Custom theme (optional)
+            self.custom_theme = options.get("custom_theme", self.custom_theme)
+            self.saved_themes = options.get("saved_themes", {})
 
             # Ensure we have the right number of backplane slots
             while len(backplanes_data) < self.MAX_BACKPLANES:
@@ -563,15 +587,61 @@ class Chassis:
         return self.pb_swap
 
     def set_theme(self, theme: str) -> None:
-        """Set UI theme (supported: 'dark', 'light', 'blue', 'emerald', 'purple', 'amber')."""
-        if theme not in ["dark", "light", "blue", "emerald", "purple", "amber"]:
-            raise ValueError("Theme must be one of: 'dark', 'light', 'blue', 'emerald', 'purple', 'amber'")
+        """Set UI theme (built-ins plus 'custom')."""
+        if theme not in ["dark", "light", "blue", "emerald", "purple", "amber", "custom"]:
+            raise ValueError("Theme must be one of: 'dark', 'light', 'blue', 'emerald', 'purple', 'amber', 'custom'")
         self.theme = theme
         self.save_config()
 
     def get_theme(self) -> str:
         """Get current UI theme."""
         return self.theme
+
+    def set_custom_theme(self, theme_data: dict) -> None:
+        """Persist custom theme settings (colors and dark_mode)."""
+        if not isinstance(theme_data, dict):
+            raise ValueError("custom theme must be a dict")
+        # minimal validation of required keys
+        required = {"dark_mode", "global_bg", "global_text", "drawer_bg", "card_bg", "border",
+                    "zebra_even_bg", "hover_bg", "table_footer_bg", "input_bg", "menu_bg",
+                    "rail_base", "rail_border", "fshape_bg", "number_border", "link_color"}
+        missing = required - set(theme_data.keys())
+        if missing:
+            raise ValueError(f"Missing custom theme keys: {', '.join(sorted(missing))}")
+        self.custom_theme = theme_data
+        self.save_config()
+
+    def get_custom_theme(self) -> dict:
+        """Return current custom theme settings."""
+        return getattr(self, 'custom_theme', {})
+
+    # Named custom themes management
+    def save_named_theme(self, name: str, theme_data: dict) -> None:
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("Theme name must be a non-empty string")
+        # Validate theme_data using existing validator
+        self.set_custom_theme(theme_data)
+        # Store and persist
+        self.saved_themes[name.strip()] = theme_data
+        self.save_config()
+
+    def get_named_theme(self, name: str) -> Optional[dict]:
+        return self.saved_themes.get(name)
+
+    def list_themes(self) -> List[str]:
+        return sorted(self.saved_themes.keys())
+
+    def delete_named_theme(self, name: str) -> None:
+        if name in self.saved_themes:
+            del self.saved_themes[name]
+            self.save_config()
+
+    def apply_named_theme(self, name: str) -> None:
+        data = self.get_named_theme(name)
+        if not data:
+            raise ValueError(f"No theme named '{name}'")
+        self.set_custom_theme(data)
+        self.set_theme('custom')
 
     def chassis_is_inverted(self) -> bool:
         """Get chassis orientation setting. Returns True if inverted, False if normal."""
@@ -671,7 +741,9 @@ class Chassis:
                         "chassis_orientation": self.chassis_orientation,
                         "units": self.units,
                         "pb_swap": self.pb_swap,
-                        "theme": self.theme
+                        "theme": self.theme,
+                        "custom_theme": self.custom_theme,
+                        "saved_themes": self.saved_themes
                     }
             }
 
