@@ -28,6 +28,15 @@ def frame(navtitle: str):
                 # Ensure dark mode base and apply modern slate overrides
                 ui.dark_mode().enable()
                 ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/theme-blue.css">')
+            elif theme == 'emerald':
+                ui.dark_mode().enable()
+                ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/theme-emerald.css">')
+            elif theme == 'purple':
+                ui.dark_mode().enable()
+                ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/theme-purple.css">')
+            elif theme == 'amber':
+                ui.dark_mode().enable()
+                ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/theme-amber.css">')
     except Exception:
         # Fail silently if theme is unavailable
         pass

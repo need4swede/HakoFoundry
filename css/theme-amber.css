@@ -1,0 +1,94 @@
+/* Amber theme: dark base with warm amber hue */
+
+/* Global */
+html,
+body,
+.q-page,
+.nicegui-content {
+  background-color: #1a1306 !important; /* warm dark */
+  color: #e5e7eb !important;
+}
+
+/* Drawer */
+.q-drawer {
+  background-color: #161005 !important;
+  color: #e5e7eb !important;
+  border-right: 1px solid #3a2a12 !important;
+}
+.q-drawer .q-item,
+.q-drawer .q-item__section,
+.q-drawer .q-item__label,
+.q-drawer .material-symbols-outlined { color: #e5e7eb !important; }
+
+/* Cards & surfaces */
+.q-card {
+  background-color: #211707 !important;
+  color: #e5e7eb !important;
+  border: 1px solid #3a2a12 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Utility overrides used by app */
+.bg-neutral-900 { background-color: #1a1306 !important; }
+.text-gray-300 { color: #e5e7eb !important; }
+.text-gray-400 { color: #e5e7eb !important; opacity: 0.8; }
+.text-gray-500 { color: #e5e7eb !important; opacity: 0.7; }
+.border-white { border-color: #c4b5a5 !important; }
+.border-neutral-600 { border-color: #3a2a12 !important; }
+.border-[#ffdd00] { border-color: #ffdd00 !important; }
+
+/* Buttons */
+.drive-button,
+.drive-button * { color: #e5e7eb !important; }
+.drive-button.q-btn { border-color: #533f1a !important; background-color: #1a1306 !important; box-shadow: 0 1px 2px rgba(0,0,0,0.25) !important; }
+.drive-button.q-btn:hover { background-color: #2b1f0c !important; }
+.q-btn--outline.text-white { color: #e5e7eb !important; border-color: #f59e0b !important; background-color: transparent !important; }
+
+/* Tables */
+.q-table, .q-table th, .q-table td { color: #e5e7eb !important; background-color: #1a1306 !important; }
+.q-table thead tr th { background-color: #211707 !important; border-bottom: 1px solid #3a2a12 !important; }
+.q-table tbody tr td { border-bottom: 1px solid #3a2a12 !important; }
+.q-table tbody tr:nth-child(even) td { background-color: #1f1608 !important; }
+.q-table tbody tr:hover td { background-color: #2b1f0c !important; }
+.q-table__bottom { background-color: #211707 !important; color: #e5e7eb !important; border-top: 1px solid #3a2a12 !important; }
+
+/* Separators */
+.q-separator { background: #3a2a12 !important; }
+
+/* Generic labels and form controls */
+label, .q-label, .q-field__label, .q-item__label, .q-btn__content, .q-banner__content { color: #e5e7eb !important; }
+
+/* Inputs */
+.q-field__native, .q-field__control, .q-field__marginal { color: #e5e7eb !important; }
+.q-field__control, .q-select__dialog, .q-menu { background-color: #1a1306 !important; border-color: #3a2a12 !important; }
+.number-input { background-color: #1a1306 !important; color: #e5e7eb !important; border-color: #533f1a !important; }
+
+/* Menus & dialogs */
+.q-menu, .q-dialog__inner, .q-dialog-plugin, .q-panel, .q-banner, .q-list, .q-item {
+  background-color: #211707 !important;
+  color: #e5e7eb !important;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.45), 0 6px 8px rgba(0, 0, 0, 0.35) !important;
+}
+.q-item:hover { background-color: #2b1f0c !important; }
+
+/* Chassis rails and backplanes */
+.pseudo-extend, .pseudo-extend-inverted {
+  --base-color: #1f1608 !important;
+  --border-color: #3a2a12 !important;
+  color: #e5e7eb !important;
+}
+.f-shape, .f-shape::before, .f-shape::after,
+.f-shape-rotated, .f-shape-rotated::before, .f-shape-rotated::after,
+.extension-patch, .extension-patch-rotated { background-color: #3a2a12 !important; }
+.f-shape, .f-shape-rotated { box-shadow: inset 0 0 0 1px #3a2a12 !important; }
+.extension-patch::after, .extension-patch-rotated::after { background-color: #1a1306 !important; }
+
+/* Links */
+a, .q-link { color: #f59e0b !important; }
+
+/* Brand yellow */
+.text-yellowhako, .q-icon.text-yellowhako, .material-symbols-outlined.text-yellowhako {
+  color: #ffdd00 !important;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+

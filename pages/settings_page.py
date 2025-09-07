@@ -292,7 +292,14 @@ def settingsPage():
 
                     # Theme selection
                     ui.label('Theme:').classes('flex justify-start items-center')
-                    theme_map = {'Dark': 'dark', 'Light': 'light', 'Blue': 'blue'}
+                    theme_map = {
+                        'Dark': 'dark',
+                        'Light': 'light',
+                        'Blue': 'blue',
+                        'Emerald': 'emerald',
+                        'Purple': 'purple',
+                        'Amber': 'amber',
+                    }
                     current_theme_display = next((k for k, v in theme_map.items() if v == globals.layoutState.get_theme()), 'Dark')
                     def _on_theme_change(e):
                         globals.layoutState.set_theme(theme_map[e.value])
