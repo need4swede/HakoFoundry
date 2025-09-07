@@ -563,14 +563,14 @@ class Chassis:
         return self.pb_swap
 
     def set_theme(self, theme: str) -> None:
-        """Set UI theme (e.g., 'dark', 'light', 'blue')."""
-        if theme not in ["dark", "light", "modern"]:
+        """Set UI theme (supported: 'dark', 'light', 'blue')."""
+        if theme not in ["dark", "light", "blue"]:
             raise ValueError("Theme must be 'dark', 'light', or 'blue'")
         self.theme = theme
         self.save_config()
 
     def get_theme(self) -> str:
-        """Get UI theme ("dark" or "light")."""
+        """Get current UI theme."""
         return self.theme
 
     def chassis_is_inverted(self) -> bool:
