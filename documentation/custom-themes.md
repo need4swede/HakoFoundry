@@ -1,8 +1,13 @@
 # Custom Themes
 
-This project supports layered, additive themes. The base UI renders with the existing dark styling. A theme file can load on top of those styles to override colors and contrast without changing layout or the original CSS.
+This project supports layered, additive themes. The base UI renders with the existing dark styling. A theme file loads on top of those styles to override colors and contrast without changing layout or the original CSS.
 
-The included `css/theme-light.css` demonstrates this approach.
+Included themes
+- `css/theme-light.css` (light base; disables dark mode)
+- `css/theme-blue.css` (dark base overlay)
+- `css/theme-emerald.css` (dark base overlay)
+- `css/theme-purple.css` (dark base overlay)
+- `css/theme-amber.css` (dark base overlay)
 
 ## How Themes Load
 
@@ -13,10 +18,9 @@ The included `css/theme-light.css` demonstrates this approach.
 - For the built-in Light theme, Quasar dark mode is disabled in the layout and `css/theme-light.css` is injected on top of the base styles.
 
 Relevant code
-- `page_layout.py:17` sets up static files.
-- `page_layout.py:21` injects `layout.css` and, when the selected theme is `light`, disables dark mode and layers `theme-light.css`.
-- `foundry_state.py:450` defines `self.theme` with persistence to `config/layout_config.json`.
-- `pages/settings_page.py:296` adds a Theme selector that saves the user's choice.
+- `page_layout.py` serves static CSS and injects `layout.css`. It then checks the selected theme and injects the matching theme CSS, enabling or disabling Quasar dark mode accordingly.
+- `foundry_state.py` stores the current theme (persisted to `config/layout_config.json`) and validates allowed theme names.
+- `pages/settings_page.py` provides the Theme selector and saves the user's choice.
 
 ## What To Override
 
@@ -104,15 +108,22 @@ Usage pattern in your theme file:
 - Use the list above as a checklist: Global → Drawer → Cards → Buttons/Inputs → Tables → Menus/Dialogs → Rails/Backplanes → Brand accents.
 
 3) Load your theme
-- Quick test: temporarily swap the Light CSS link in `page_layout.py` to your file name.
-- Production: extend the theme selection to include your theme name and add a conditional link injection in `page_layout.py` similar to the Light theme.
+- Quick test: temporarily add an `elif` in `page_layout.py` pointing to your file.
+- Production: wire it in three places:
+  - Add your theme file under `css/theme-yourname.css`.
+  - Extend the theme selector mapping in `pages/settings_page.py` (display → value).
+  - Update validation in `foundry_state.py` to allow your theme value.
 
 Example injection (conceptual):
 
 ```python
 # page_layout.py
-if globals.layoutState.get_theme() == 'mytheme':
-    ui.dark_mode().disable()  # or enable() depending on your base
+theme = globals.layoutState.get_theme()
+if theme == 'light':
+    ui.dark_mode().disable()
+    ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/theme-light.css">')
+elif theme == 'mytheme':
+    ui.dark_mode().enable()  # keep dark base for overlays
     ui.add_head_html('<link rel="stylesheet" type="text/css" href="/css/theme-yourname.css">')
 ```
 
@@ -127,33 +138,36 @@ if globals.layoutState.get_theme() == 'mytheme':
 - Separate adjacent surfaces with either a border (`--border`) or a subtle shadow.
 - Preserve brand accents (yellow) and use shadows to ensure legibility on light backgrounds.
 
-## Minimal Theme Skeleton
+## Minimal Theme Skeleton (Dark Overlay)
 
 ```css
 /* css/theme-yourname.css */
 
 /* Global */
-html, body, .q-page, .nicegui-content { background: #fafafa !important; color: #111827 !important; }
+html, body, .q-page, .nicegui-content { background: #0f172a !important; color: #e5e7eb !important; }
 
 /* Navigation */
-.q-drawer { background: #f5f5f5 !important; color: #111827 !important; border-right: 1px solid #d1d5db !important; }
+.q-drawer { background: #0b1220 !important; color: #e5e7eb !important; border-right: 1px solid #1f2937 !important; }
 
 /* Cards */
-.q-card { background: #ffffff !important; color: #111827 !important; border: 1px solid #d1d5db !important; }
+.q-card { background: #111827 !important; color: #e5e7eb !important; border: 1px solid #1f2937 !important; }
 
 /* Tables */
-.q-table, .q-table th, .q-table td { background: #ffffff !important; color: #111827 !important; }
-.q-table thead tr th { background: #f8fafc !important; border-bottom: 1px solid #d1d5db !important; }
+.q-table, .q-table th, .q-table td { background: #0f172a !important; color: #e5e7eb !important; }
+.q-table thead tr th { background: #111827 !important; border-bottom: 1px solid #1f2937 !important; }
 
 /* Inputs */
-.q-field__control { background: #ffffff !important; }
+.q-field__control { background: #0f172a !important; }
 
 /* Rails / Backplanes */
-.pseudo-extend, .pseudo-extend-inverted { --base-color: #f3f4f6 !important; --border-color: #cbd5e1 !important; }
-.f-shape, .f-shape::before, .f-shape::after, .f-shape-rotated, .f-shape-rotated::before, .f-shape-rotated::after { background: #e5e7eb !important; }
+.pseudo-extend, .pseudo-extend-inverted { --base-color: #0e1628 !important; --border-color: #1f2937 !important; }
+.f-shape, .f-shape::before, .f-shape::after, .f-shape-rotated, .f-shape-rotated::before, .f-shape-rotated::after { background: #1e2b48 !important; }
 
 /* Brand */
-.text-yellowhako { color: #ffdd00 !important; text-shadow: 0 1px 2px rgba(0,0,0,0.45); }
+.text-yellowhako { color: #ffdd00 !important; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25)); }
+```
+
+For a light-base theme, swap the background and text colors accordingly (see `css/theme-light.css`) and remember to disable dark mode in `page_layout.py` for that theme.
 ```
 
 ## Checklist
