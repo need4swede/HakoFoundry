@@ -307,7 +307,7 @@ def settingsPage():
                                 'Emerald': 'emerald', 'Purple': 'purple', 'Amber': 'amber', 'Custom': 'custom'
                             }
                             current_theme_display = next((k for k, v in theme_map.items() if v == globals.layoutState.get_theme()), 'Dark')
-                            def _on_theme_change(e):
+                            async def _on_theme_change(e):
                                 value = theme_map[e.value]
                                 globals.layoutState.set_theme(value)
                                 # Remove any live preview style when switching away from custom
@@ -315,6 +315,12 @@ def settingsPage():
                                     ui.run_javascript("""
                                     (() => { const el = document.getElementById('custom-theme-preview'); if (el) el.remove(); })();
                                     """)
+                                else:
+                                    # When switching to custom, immediately reflect current builder values in the iframe
+                                    try:
+                                        await _apply_live_from_current()
+                                    except Exception:
+                                        pass
                                 ui.notify('Theme updated. Reload to apply.', position='bottom-right', type='info', group=False)
                             theme_select = ui.select(list(theme_map.keys()), value=current_theme_display, on_change=_on_theme_change)
 
@@ -323,8 +329,9 @@ def settingsPage():
                                 ui.notify('Switch to Custom and use Preview for live CSS.', position='bottom-right', type='info', group=False)
                             ui.button('Preview', on_click=preview_current).props('flat')
 
-                        # Custom builder (only when Custom)
-                        with ui.expansion('Custom Theme Builder').bind_visibility_from(globals.layoutState, 'theme', backward=lambda t: t == 'custom').props('dense').classes('w-full mt-2'):
+                        # Custom builder (only when Custom) — reveal immediately without extra expansion
+                        with ui.column().bind_visibility_from(globals.layoutState, 'theme', backward=lambda t: t == 'custom').classes('w-full mt-2'):
+                            ui.label('Custom Theme Builder').classes('text-md font-semibold mb-1')
                             logger = logging.getLogger('foundry_logger')
                             ct = globals.layoutState.get_custom_theme() or {}
                             # Working copy that event handlers update in real time
@@ -530,27 +537,9 @@ def settingsPage():
                                 ui.button('Set Active', on_click=set_active)
 
                                 async def preview():
-                                    data = _collect_theme_data()
-                                    from theme_utils import generate_custom_css
-                                    css = generate_custom_css(data)
-                                    css_json = json.dumps(css)
-                                    await ui.run_javascript(f"""
-                                    (() => {{
-                                      const id = 'custom-theme-preview';
-                                      let style = document.getElementById(id);
-                                      if (!style) {{
-                                        style = document.createElement('style');
-                                        style.id = id;
-                                        document.head.appendChild(style);
-                                      }}
-                                      style.textContent = {css_json};
-                                    }})();
-                                    """)
-                                    try:
-                                        logger.info("[ThemeBuilder] Preview injected style into document.head")
-                                    except Exception:
-                                        pass
-                                    ui.notify('Preview applied (not persisted).', position='bottom-right', type='info', group=False)
+                                    # Apply the current builder theme to the embedded overview iframe
+                                    await _apply_live_from_current()
+                                    ui.notify('Preview applied in the embedded overview.', position='bottom-right', type='info', group=False)
                                 ui.button('Preview', on_click=preview).props('flat')
 
                             ui.separator().classes('my-2')
@@ -647,6 +636,17 @@ def settingsPage():
                             # Give the iframe a moment to load before capturing
                             ui.timer(1.0, _seed_from_unset_dark, once=True)
 
+                            # If the active theme is already custom, reflect it in the iframe once it loads
+                            async def _ensure_preview_matches_current_theme():
+                                try:
+                                    theme_name = getattr(globals.layoutState, 'get_theme', lambda: 'dark')()
+                                    if theme_name == 'custom':
+                                        await _apply_live_from_current()
+                                except Exception:
+                                    pass
+
+                            ui.timer(1.0, _ensure_preview_matches_current_theme, once=True)
+
                             with ui.row().classes('w-full items-center gap-3'):
                                 name_input = ui.input(placeholder='Theme name').classes('w-60')
                                 saved_select = ui.select(options=globals.layoutState.list_themes(), value=None, label='Saved themes').classes('w-60')
@@ -668,7 +668,7 @@ def settingsPage():
                                     except Exception as ex:
                                         ui.notify(f'Failed to save theme: {ex}', position='bottom-right', type='negative', group=False)
 
-                                def load_selected():
+                                async def load_selected():
                                     name = saved_select.value
                                     if not name:
                                         return ui.notify('Select a saved theme', position='bottom-right', type='info', group=False)
@@ -681,6 +681,11 @@ def settingsPage():
                                     except Exception:
                                         pass
                                     ui.notify(f"Loaded '{name}' into editor", position='bottom-right', type='info', group=False)
+                                    # Ensure the iframe reflects what we just loaded
+                                    try:
+                                        await _apply_live_from_current()
+                                    except Exception:
+                                        pass
 
                                 def delete_selected():
                                     name = saved_select.value

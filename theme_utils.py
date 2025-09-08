@@ -80,7 +80,8 @@ label, .q-label, .q-field__label, .q-item__label, .q-btn__content, .q-banner__co
 .f-shape-rotated, .f-shape-rotated::before, .f-shape-rotated::after,
 .extension-patch, .extension-patch-rotated { background-color: $fshape_bg !important; }
 .f-shape, .f-shape-rotated { box-shadow: inset 0 0 0 1px $rail_border !important; }
-.extension-patch::after, .extension-patch-rotated::after { background-color: $global_bg !important; }
+/* The circular scoop should match the rail base color for seamless rails */
+.extension-patch::after, .extension-patch-rotated::after { background-color: $rail_base !important; }
 
 /* Links & brand */
 a, .q-link { color: $link_color !important; }
