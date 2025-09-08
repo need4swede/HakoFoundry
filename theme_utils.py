@@ -95,21 +95,21 @@ def generate_custom_css(theme: Dict[str, str]) -> str:
     """Create CSS from a custom theme dict."""
     # Defensive: ensure all required keys exist with sane fallbacks
     defaults = {
-        "global_bg": "#0f172a",
-        "global_text": "#e5e7eb",
-        "drawer_bg": "#0b1220",
-        "card_bg": "#111827",
-        "border": "#1f2937",
-        "zebra_even_bg": "#0e1628",
-        "hover_bg": "#162033",
-        "table_footer_bg": "#111827",
-        "input_bg": "#0f172a",
-        "menu_bg": "#111827",
-        "rail_base": "#0e1628",
-        "rail_border": "#1f2937",
-        "fshape_bg": "#1e2b48",
-        "number_border": "#334155",
-        "link_color": "#1d4ed8",
+        "global_bg": "#121212",
+        "global_text": "#e0e0e0",
+        "drawer_bg": "#1b1b1b",
+        "card_bg": "#1d1d1d",
+        "border": "#2a2a2a",
+        "zebra_even_bg": "#171717",
+        "hover_bg": "#2a2a2a",
+        "table_footer_bg": "#1d1d1d",
+        "input_bg": "#1d1d1d",
+        "menu_bg": "#1d1d1d",
+        "rail_base": "#303030",
+        "rail_border": "#2a2a2a",
+        "fshape_bg": "#232323",
+        "number_border": "#333333",
+        "link_color": "#ffffff",
     }
     values = {**defaults, **{k: v for k, v in theme.items() if isinstance(v, str)}}
     return CUSTOM_TEMPLATE.safe_substitute(**values)

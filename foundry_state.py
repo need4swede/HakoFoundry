@@ -455,25 +455,27 @@ class Chassis:
         self.units = "C"  # Temperature units: "C" for Celsius, "F" for Fahrenheit
         self.pb_swap = False # Powerboard swap preference
         self.theme = "dark"  # UI theme: "dark", "light", built-ins, or "custom"
-        # Default custom theme settings (dark overlay baseline)
+        # Default custom theme settings aligned with app's default dark
         self.custom_theme = {
             "dark_mode": True,
-            "global_bg": "#0f172a",
-            "global_text": "#e5e7eb",
-            "drawer_bg": "#0b1220",
-            "card_bg": "#111827",
-            "border": "#1f2937",
-            "zebra_even_bg": "#0e1628",
-            "hover_bg": "#162033",
-            "table_footer_bg": "#111827",
-            "input_bg": "#0f172a",
-            "menu_bg": "#111827",
-            "rail_base": "#0e1628",
-            "rail_border": "#1f2937",
-            "fshape_bg": "#1e2b48",
-            "number_border": "#334155",
-            "link_color": "#1d4ed8"
+            "global_bg": "#121212",
+            "global_text": "#e0e0e0",
+            "drawer_bg": "#1b1b1b",
+            "card_bg": "#1d1d1d",
+            "border": "#2a2a2a",
+            "zebra_even_bg": "#171717",
+            "hover_bg": "#2a2a2a",
+            "table_footer_bg": "#1d1d1d",
+            "input_bg": "#1d1d1d",
+            "menu_bg": "#1d1d1d",
+            "rail_base": "#303030",
+            "rail_border": "#2a2a2a",
+            "fshape_bg": "#232323",
+            "number_border": "#333333",
+            "link_color": "#ffffff"
         }
+        # Whether we've auto-seeded custom theme from live defaults
+        self.custom_theme_seeded: bool = False
         # Collection of saved custom themes by name
         self.saved_themes = {}
 
@@ -510,6 +512,8 @@ class Chassis:
             self.theme = options.get("theme", "dark")
             # Custom theme (optional)
             self.custom_theme = options.get("custom_theme", self.custom_theme)
+            self.custom_theme_seeded = bool(options.get("custom_theme_seeded", False))
+            self.custom_theme_enabled = bool(options.get("custom_theme_enabled", False))
             self.saved_themes = options.get("saved_themes", {})
 
             # Ensure we have the right number of backplane slots
@@ -608,12 +612,27 @@ class Chassis:
         missing = required - set(theme_data.keys())
         if missing:
             raise ValueError(f"Missing custom theme keys: {', '.join(sorted(missing))}")
+        logger.info(f"[FoundryState] set_custom_theme: {theme_data}")
         self.custom_theme = theme_data
         self.save_config()
 
     def get_custom_theme(self) -> dict:
         """Return current custom theme settings."""
         return getattr(self, 'custom_theme', {})
+
+    def is_custom_theme_seeded(self) -> bool:
+        return bool(getattr(self, 'custom_theme_seeded', False))
+
+    def set_custom_theme_seeded(self, seeded: bool) -> None:
+        self.custom_theme_seeded = bool(seeded)
+        self.save_config()
+
+    def is_custom_theme_enabled(self) -> bool:
+        return bool(getattr(self, 'custom_theme_enabled', False))
+
+    def set_custom_theme_enabled(self, enabled: bool) -> None:
+        self.custom_theme_enabled = bool(enabled)
+        self.save_config()
 
     # Named custom themes management
     def save_named_theme(self, name: str, theme_data: dict) -> None:
@@ -743,6 +762,8 @@ class Chassis:
                         "pb_swap": self.pb_swap,
                         "theme": self.theme,
                         "custom_theme": self.custom_theme,
+                        "custom_theme_seeded": self.custom_theme_seeded,
+                        "custom_theme_enabled": getattr(self, 'custom_theme_enabled', False),
                         "saved_themes": self.saved_themes
                     }
             }

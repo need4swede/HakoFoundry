@@ -1,5 +1,7 @@
 from nicegui import ui
 import json
+import re
+import logging
 from authentication import require_auth
 import globals
 import page_layout
@@ -253,278 +255,510 @@ def settingsPage():
 
     # Main settings UI
     with page_layout.frame('Settings'):
-        with ui.element('div').classes('flex w-full').style('justify-content: safe center;'):
-            with ui.card():
-                # Chassis Layout Section
-                ui.label('Chassis Configuration').classes('text-xl font-bold mb-4')
-                with ui.grid(columns=2).classes('gap-0 w-full').style('grid-auto-rows: auto;'):
-                    ui.label('Chassis Layout:').classes('flex justify-start items-center')
-                    product_select = ui.select(
-                        ['Hako-Core', 'Hako-Core Mini'],
-                        value=globals.layoutState.get_product(),
-                        on_change=handle_product_change
-                    )
+        with ui.element('div').classes('w-full max-w-5xl mx-auto px-4'):
+            with ui.card().classes('w-full'):
+                ui.label('Settings').classes('text-xl font-bold mb-2')
+                with ui.tabs().classes('w-full') as tabs:
+                    general_tab = ui.tab('General')
+                    themes_tab = ui.tab('Themes')
+                    backplanes_tab = ui.tab('Backplanes')
+                    powerboard_tab = ui.tab('Powerboard')
+                    pwm_tab = ui.tab('PWM')
 
-                    ui.label('Show drive model:').classes('flex justify-start items-center ')
-                    ui_refs['model_switch'] = ui.switch(value=globals.layoutState.get_model_display(), on_change=lambda e: change_model_display(e.value)).style('justify-content:end;')
+                with ui.tab_panels(tabs, value=general_tab).classes('w-full'):
+                    with ui.tab_panel(general_tab):
+                        with ui.grid(columns=2).classes('gap-3 w-full items-center').style('grid-auto-rows: auto;'):
+                            ui.label('Chassis Layout:').classes('justify-start items-center')
+                            product_select = ui.select(
+                                ['Hako-Core', 'Hako-Core Mini'],
+                                value=globals.layoutState.get_product(),
+                                on_change=handle_product_change
+                            )
 
-                    ui.label('Show drive serial #:').classes('flex justify-start items-center')
-                    ui_refs['sn_switch'] = ui.switch(value=globals.layoutState.get_sn_display(), on_change=lambda e: change_sn_display(e.value)).style('justify-content:end;')
+                            ui.label('Show drive model:')
+                            ui_refs['model_switch'] = ui.switch(value=globals.layoutState.get_model_display(), on_change=lambda e: change_model_display(e.value))
 
-                    ui.label('Invert chassis orientation:').classes('flex justify-start items-center')
-                    orientation_switch = ui.switch(
-                        value=globals.layoutState.chassis_is_inverted(),
-                        on_change=lambda e: globals.layoutState.set_chassis_inverted(e.value)
-                    ).style('justify-content:end;')
-                    orientation_switch.tooltip('Toggle if your chassis is physically mounted inverted')
+                            ui.label('Show drive serial #:')
+                            ui_refs['sn_switch'] = ui.switch(value=globals.layoutState.get_sn_display(), on_change=lambda e: change_sn_display(e.value))
 
-                    ui.label('Temperature Units:').classes('flex justify-start items-center')
-                    # Map display names to backend values
-                    unit_options = {'Celsius (C°)': 'C', 'Fahrenheit (F°)': 'F'}
-                    current_unit = globals.layoutState.get_units()
-                    # Find the display name for the current value
-                    current_display = next((k for k, v in unit_options.items() if v == current_unit), 'Celsius (C°)')
+                            ui.label('Invert chassis orientation:')
+                            orientation_switch = ui.switch(
+                                value=globals.layoutState.chassis_is_inverted(),
+                                on_change=lambda e: globals.layoutState.set_chassis_inverted(e.value)
+                            )
+                            orientation_switch.tooltip('Toggle if your chassis is physically mounted inverted')
 
-                    ui.select(
-                        list(unit_options.keys()),
-                        value=current_display,
-                        on_change=lambda e: globals.layoutState.set_units(unit_options[e.value])
-                    ).style('justify-content:end;')
+                            ui.label('Temperature Units:')
+                            unit_options = {'Celsius (C°)': 'C', 'Fahrenheit (F°)': 'F'}
+                            current_unit = globals.layoutState.get_units()
+                            current_display = next((k for k, v in unit_options.items() if v == current_unit), 'Celsius (C°)')
+                            ui.select(
+                                list(unit_options.keys()),
+                                value=current_display,
+                                on_change=lambda e: globals.layoutState.set_units(unit_options[e.value])
+                            )
 
-                    # Theme selection
-                    ui.label('Theme:').classes('flex justify-start items-center')
-                    theme_map = {
-                        'Dark': 'dark',
-                        'Light': 'light',
-                        'Blue': 'blue',
-                        'Emerald': 'emerald',
-                        'Purple': 'purple',
-                        'Amber': 'amber',
-                        'Custom': 'custom',
-                    }
-                    current_theme_display = next((k for k, v in theme_map.items() if v == globals.layoutState.get_theme()), 'Dark')
-                    def _on_theme_change(e):
-                        globals.layoutState.set_theme(theme_map[e.value])
-                        ui.notify('Theme updated. Reload to apply.', position='bottom-right', type='info', group=False)
+                    with ui.tab_panel(themes_tab):
+                        # Theme selection + preview actions
+                        with ui.row().classes('w-full items-end gap-3'):
+                            ui.label('Theme').classes('text-lg font-semibold')
+                            theme_map = {
+                                'Dark': 'dark', 'Light': 'light', 'Blue': 'blue',
+                                'Emerald': 'emerald', 'Purple': 'purple', 'Amber': 'amber', 'Custom': 'custom'
+                            }
+                            current_theme_display = next((k for k, v in theme_map.items() if v == globals.layoutState.get_theme()), 'Dark')
+                            def _on_theme_change(e):
+                                value = theme_map[e.value]
+                                globals.layoutState.set_theme(value)
+                                # Remove any live preview style when switching away from custom
+                                if value != 'custom':
+                                    ui.run_javascript("""
+                                    (() => { const el = document.getElementById('custom-theme-preview'); if (el) el.remove(); })();
+                                    """)
+                                ui.notify('Theme updated. Reload to apply.', position='bottom-right', type='info', group=False)
+                            theme_select = ui.select(list(theme_map.keys()), value=current_theme_display, on_change=_on_theme_change)
 
-                    ui.select(
-                        list(theme_map.keys()),
-                        value=current_theme_display,
-                        on_change=_on_theme_change
-                    ).style('justify-content:end;')
+                            # Quick preview button for current theme selection
+                            def preview_current():
+                                ui.notify('Switch to Custom and use Preview for live CSS.', position='bottom-right', type='info', group=False)
+                            ui.button('Preview', on_click=preview_current).props('flat')
 
-                    # Custom theme editor - shown when 'Custom' is selected
-                    def show_custom_editor():
-                        return globals.layoutState.get_theme() == 'custom'
+                        # Custom builder (only when Custom)
+                        with ui.expansion('Custom Theme Builder').bind_visibility_from(globals.layoutState, 'theme', backward=lambda t: t == 'custom').props('dense').classes('w-full mt-2'):
+                            logger = logging.getLogger('foundry_logger')
+                            ct = globals.layoutState.get_custom_theme() or {}
+                            # Working copy that event handlers update in real time
+                            current = {**ct}
+                            current.setdefault('menus_bg', ct.get('menu_bg', ct.get('card_bg', '#1d1d1d')))
 
-                    with ui.expansion('Custom Theme Builder').bind_visibility_from(globals.layoutState, 'theme', backward=lambda t: t == 'custom').props('dense').classes('w-full mt-2').style('grid-column: 1 / -1;'):
-                        ct = globals.layoutState.get_custom_theme() or {}
+                            with ui.grid(columns=2).classes('gap-4 w-full').style('grid-auto-rows: auto;'):
+                                with ui.column().classes('gap-2'):
+                                    ui.label('Base & Text').classes('text-sm text-gray-400')
+                                    dm = ui.switch('Dark base', value=bool(ct.get('dark_mode', True)))
+                                    async def _on_dm_change(_):
+                                        await _apply_live_from_current()
+                                    dm.on('change', _on_dm_change)
 
-                        def color_row(label_text, key, default):
-                            with ui.row().classes('w-full items-center'):
-                                ui.label(label_text).classes('w-48 text-right pr-2')
-                                val = ct.get(key, default)
-                                i = ui.input(value=val).props('type=color').classes('w-24')
-                                return i
+                                    def color_picker(label_text, key, default):
+                                        with ui.row().classes('items-center gap-2'):
+                                            ui.label(label_text).classes('w-44')
+                                            val = current.get(key, default)
+                                            txt = ui.input(value=val, placeholder='#RRGGBB').classes('w-28')
+                                            swatch = ui.input(value=val).props('type=color').classes('w-12')
 
-                        # Dark mode toggle for custom theme
-                        dm = ui.switch('Dark base', value=bool(ct.get('dark_mode', True)))
+                                            hex_re = re.compile(r'^#?(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$')
 
-                        inputs = {}
-                        inputs['global_bg'] = color_row('Global background', 'global_bg', '#0f172a')
-                        inputs['global_text'] = color_row('Global text', 'global_text', '#e5e7eb')
-                        inputs['drawer_bg'] = color_row('Drawer background', 'drawer_bg', '#0b1220')
-                        inputs['card_bg'] = color_row('Card background', 'card_bg', '#111827')
-                        inputs['border'] = color_row('Border', 'border', '#1f2937')
-                        inputs['zebra_even_bg'] = color_row('Table zebra (even)', 'zebra_even_bg', '#0e1628')
-                        inputs['hover_bg'] = color_row('Hover background', 'hover_bg', '#162033')
-                        inputs['table_footer_bg'] = color_row('Table footer bg', 'table_footer_bg', '#111827')
-                        inputs['input_bg'] = color_row('Input background', 'input_bg', '#0f172a')
-                        inputs['menu_bg'] = color_row('Menu/dialog background', 'menu_bg', '#111827')
-                        inputs['rail_base'] = color_row('Rail base', 'rail_base', '#0e1628')
-                        inputs['rail_border'] = color_row('Rail border', 'rail_border', '#1f2937')
-                        inputs['fshape_bg'] = color_row('Backplane (F-shape)', 'fshape_bg', '#1e2b48')
-                        inputs['number_border'] = color_row('Number border', 'number_border', '#334155')
-                        inputs['link_color'] = color_row('Link color', 'link_color', '#1d4ed8')
+                                            async def on_txt_change(e):
+                                                v = (txt.value or '').strip()
+                                                if not hex_re.match(v):
+                                                    return
+                                                if not v.startswith('#'):
+                                                    v = '#' + v
+                                                v = '#' + v[1:].lower()
+                                                if len(v) == 4:
+                                                    v = '#' + ''.join(ch*2 for ch in v[1:])
+                                                swatch.set_value(v)
+                                                txt.set_value(v)
+                                                current[key] = v
+                                                await _apply_live_from_current()
 
-                        def _collect_theme_data():
-                            data = {k: inp.value for k, inp in inputs.items()}
-                            data['dark_mode'] = bool(dm.value)
-                            return data
+                                            async def on_swatch_change(e):
+                                                v = (swatch.value or '').strip()
+                                                if not v.startswith('#'):
+                                                    v = '#' + v
+                                                v = '#' + v[1:].lower()
+                                                if len(v) == 4:
+                                                    v = '#' + ''.join(ch*2 for ch in v[1:])
+                                                txt.set_value(v)
+                                                current[key] = v
+                                                await _apply_live_from_current()
 
-                        def _populate_editor(data: dict):
-                            try:
-                                dm.set_value(bool(data.get('dark_mode', True)))
-                                for k, inp in inputs.items():
-                                    if k in data:
-                                        inp.set_value(data[k])
-                            except Exception:
-                                pass
+                                            # Sync both ways on both 'input' (live) and 'change' (finalize)
+                                            txt.on('input', on_txt_change)
+                                            txt.on('change', on_txt_change)
+                                            swatch.on('input', on_swatch_change)
+                                            swatch.on('change', on_swatch_change)
 
-                        def save_custom_theme():
-                            data = _collect_theme_data()
-                            try:
-                                globals.layoutState.set_custom_theme(data)
-                                # Also write a css file for static serving
-                                from theme_utils import write_custom_css
-                                write_custom_css(data, path='css/theme-custom.css')
-                                ui.notify('Custom theme saved. Select Custom and reload to apply.', position='bottom-right', type='positive', group=False)
-                            except Exception as ex:
-                                ui.notify(f'Failed to save custom theme: {ex}', position='bottom-right', type='negative', group=False)
+                                            def _reset():
+                                                txt.set_value(default)
+                                                swatch.set_value(default)
+                                                current[key] = default
+                                                ui.notify(f"Reset '{label_text}'", position='bottom-right', type='info', group=False)
+                                            ui.button('Reset', on_click=_reset).props('flat dense size=sm').classes('q-ml-sm')
+                                            return txt
 
-                        with ui.row().classes('w-full items-center gap-3 mt-3'):
-                            ui.button('Save Custom Theme', on_click=save_custom_theme).props('color=primary')
-                            def set_active():
-                                data = _collect_theme_data()
+                                    inputs = {}
+                                    inputs['global_bg'] = color_picker('Background', 'global_bg', '#121212')
+                                    inputs['global_text'] = color_picker('Text Color', 'global_text', '#e0e0e0')
+                                    inputs['drawer_bg'] = color_picker('Drawer background', 'drawer_bg', '#1b1b1b')
+                                    inputs['menus_bg'] = color_picker('Menus background', 'menus_bg', '#1d1d1d')
+                                    inputs['border'] = color_picker('Border', 'border', '#2a2a2a')
+                                    inputs['input_bg'] = color_picker('Input background', 'input_bg', '#1d1d1d')
+                                    # menu_bg comes from unified 'menus_bg' on save
+
+                                with ui.column().classes('gap-2'):
+                                    ui.label('Tables & Rails').classes('text-sm text-gray-400')
+                                    inputs['zebra_even_bg'] = color_picker('Table zebra (even)', 'zebra_even_bg', '#171717')
+                                    inputs['hover_bg'] = color_picker('Hover background', 'hover_bg', '#2a2a2a')
+                                    inputs['table_footer_bg'] = color_picker('Table footer bg', 'table_footer_bg', '#1d1d1d')
+                                    inputs['rail_base'] = color_picker('Rail base', 'rail_base', '#303030')
+                                    inputs['rail_border'] = color_picker('Rail border', 'rail_border', '#2a2a2a')
+                                    inputs['fshape_bg'] = color_picker('Backplane (F-shape)', 'fshape_bg', '#232323')
+                                    inputs['number_border'] = color_picker('Number border', 'number_border', '#333333')
+                                    inputs['link_color'] = color_picker('Link color', 'link_color', '#ffffff')
+
+                            def _collect_theme_data():
+                                # Start from our live-updated working copy
+                                data = {k: current.get(k, inp.value) for k, inp in inputs.items()}
+                                # Validate hex values (#RGB or #RRGGBB)
+                                invalid = [k for k, v in data.items() if not isinstance(v, str) or not re.fullmatch(r'#?(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})', (v or ''))]
+                                if invalid:
+                                    raise ValueError(f"Invalid hex value for: {', '.join(invalid)} (use #RGB or #RRGGBB)")
+                                # Normalize to #lowercase
+                                for k, v in list(data.items()):
+                                    if not v.startswith('#'):
+                                        v = '#' + v
+                                    v = '#' + v[1:].lower()
+                                    if len(v) == 4:
+                                        v = '#' + ''.join(ch*2 for ch in v[1:])
+                                    data[k] = v
+                                # Map unified menus color to both required keys for theme utils
+                                if 'menus_bg' in data:
+                                    mv = data.pop('menus_bg')
+                                    data['card_bg'] = mv
+                                    data['menu_bg'] = mv
+                                data['dark_mode'] = bool(dm.value)
                                 try:
-                                    globals.layoutState.set_custom_theme(data)
-                                    globals.layoutState.set_theme('custom')
-                                    from theme_utils import write_custom_css
-                                    write_custom_css(data, path='css/theme-custom.css')
-                                    ui.notify('Custom theme set active. Reload to apply.', position='bottom-right', type='positive', group=False)
+                                    logger.info(f"[ThemeBuilder] Collected theme: {json.dumps(data)}")
+                                except Exception:
+                                    pass
+                                return data
+
+                            def _populate_editor(data: dict):
+                                try:
+                                    dm.set_value(bool(data.get('dark_mode', True)))
+                                    # Set unified menus background from existing theme values
+                                    v_menus = data.get('menu_bg', data.get('card_bg'))
+                                    if v_menus and 'menus_bg' in inputs:
+                                        inputs['menus_bg'].set_value(v_menus)
+                                        current['menus_bg'] = v_menus
+                                    for k, inp in inputs.items():
+                                        if k in data:
+                                            inp.set_value(data[k])
+                                            current[k] = data[k]
+                                except Exception:
+                                    pass
+
+                            async def _apply_live_from_current():
+                                try:
+                                    data = {k: current.get(k, inp.value) for k, inp in inputs.items()}
+                                    # Map unified menus to card/menu
+                                    if 'menus_bg' in data:
+                                        mv = data['menus_bg']
+                                        data['card_bg'] = mv
+                                        data['menu_bg'] = mv
+                                    data['dark_mode'] = bool(dm.value)
+                                    from theme_utils import generate_custom_css
+                                    css = generate_custom_css(data)
+                                    css_json = json.dumps(css)
+                                    dark_val = 'true' if data['dark_mode'] else 'false'
+                                    # Live apply ONLY inside the preview iframe; do not alter current page
+                                    await ui.run_javascript(f"""
+                                    (() => {{
+                                      const css = {css_json};
+                                      const id = 'custom-theme-preview';
+                                      const iframe = document.getElementById('theme-preview-iframe');
+                                      if (iframe && iframe.contentDocument) {{
+                                        let s2 = iframe.contentDocument.getElementById(id);
+                                        if (!s2) {{ s2 = iframe.contentDocument.createElement('style'); s2.id = id; iframe.contentDocument.head.appendChild(s2); }}
+                                        s2.textContent = css;
+                                        try {{ iframe.contentWindow.Quasar.Dark.set({dark_val}); }} catch(e) {{}}
+                                      }}
+                                    }})();
+                                    """)
+                                except Exception as _:
+                                    pass
+
+                            with ui.row().classes('w-full items-center gap-3 mt-2'):
+                                def save_custom_theme():
+                                    data = _collect_theme_data()
+                                    try:
+                                        logger.info("[ThemeBuilder] Saving custom theme...")
+                                        globals.layoutState.set_custom_theme(data)
+                                        if hasattr(globals.layoutState, 'set_custom_theme_enabled'):
+                                            globals.layoutState.set_custom_theme_enabled(True)
+                                        from theme_utils import write_custom_css
+                                        write_custom_css(data, path='css/theme-custom.css')
+                                        logger.info("[ThemeBuilder] Wrote css/theme-custom.css")
+                                        ui.notify('Custom theme saved. Select Custom and reload to apply.', position='bottom-right', type='positive', group=False)
+                                    except Exception as ex:
+                                        ui.notify(f'Failed to save custom theme: {ex}', position='bottom-right', type='negative', group=False)
+                                ui.button('Save', on_click=save_custom_theme).props('color=primary')
+
+                                async def set_active():
+                                    data = _collect_theme_data()
+                                    try:
+                                        logger.info("[ThemeBuilder] Set Active with data from builder")
+                                        globals.layoutState.set_custom_theme(data)
+                                        globals.layoutState.set_theme('custom')
+                                        if hasattr(globals.layoutState, 'set_custom_theme_enabled'):
+                                            globals.layoutState.set_custom_theme_enabled(True)
+                                        from theme_utils import write_custom_css, generate_custom_css
+                                        write_custom_css(data, path='css/theme-custom.css')
+                                        # Live inject CSS for current session
+                                        css = generate_custom_css(data)
+                                        css_json = json.dumps(css)
+                                        await ui.run_javascript(f"""
+                                        (() => {{
+                                          const id = 'custom-theme-preview';
+                                          let style = document.getElementById(id);
+                                          if (!style) {{
+                                            style = document.createElement('style');
+                                            style.id = id;
+                                            document.head.appendChild(style);
+                                          }}
+                                          style.textContent = {css_json};
+                                        }})();
+                                        """)
+                                        try:
+                                            theme_select.set_value('Custom')
+                                        except Exception:
+                                            pass
+                                        ui.notify('Custom theme set active. Reload to persist across sessions.', position='bottom-right', type='positive', group=False)
+                                    except Exception as ex:
+                                        ui.notify(f'Failed to activate custom theme: {ex}', position='bottom-right', type='negative', group=False)
+                                ui.button('Set Active', on_click=set_active)
+
+                                async def preview():
+                                    data = _collect_theme_data()
+                                    from theme_utils import generate_custom_css
+                                    css = generate_custom_css(data)
+                                    css_json = json.dumps(css)
+                                    await ui.run_javascript(f"""
+                                    (() => {{
+                                      const id = 'custom-theme-preview';
+                                      let style = document.getElementById(id);
+                                      if (!style) {{
+                                        style = document.createElement('style');
+                                        style.id = id;
+                                        document.head.appendChild(style);
+                                      }}
+                                      style.textContent = {css_json};
+                                    }})();
+                                    """)
+                                    try:
+                                        logger.info("[ThemeBuilder] Preview injected style into document.head")
+                                    except Exception:
+                                        pass
+                                    ui.notify('Preview applied (not persisted).', position='bottom-right', type='info', group=False)
+                                ui.button('Preview', on_click=preview).props('flat')
+
+                            ui.separator().classes('my-2')
+
+                            # Live embedded Overview preview
+                            ui.label('Live Overview Preview').classes('text-sm text-gray-400')
+                            preview_iframe = ui.element('iframe').props('src=/overview').style('width: 100%; height: 600px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; background: transparent;').classes('w-full').props('loading=eager').props('id=theme-preview-iframe')
+
+                            async def sync_from_preview():
+                                js = """
+                                (() => {
+                                  const rgbToHex = (c) => {
+                                    if (!c) return '';
+                                    const m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                                    if (!m) return '';
+                                    const toHex = (n) => ('0'+parseInt(n,10).toString(16)).slice(-2);
+                                    return '#' + toHex(m[1]) + toHex(m[2]) + toHex(m[3]);
+                                  };
+                                  const iframe = document.getElementById('theme-preview-iframe');
+                                  if (!iframe || !iframe.contentDocument) return null;
+                                  const d = iframe.contentDocument;
+                                  const pickBG = (sel) => { const el = d.querySelector(sel); return el ? rgbToHex(getComputedStyle(el).backgroundColor) : ''; };
+                                  const pickColor = (sel) => { const el = d.querySelector(sel); return el ? rgbToHex(getComputedStyle(el).color) : ''; };
+                                  const pickBorder = (sel) => { const el = d.querySelector(sel); return el ? rgbToHex(getComputedStyle(el).borderTopColor) : ''; };
+                                  const pickVar = (sel, v) => { const el = d.querySelector(sel); return el ? (getComputedStyle(el).getPropertyValue(v) || '').trim() : ''; };
+                                  const firstNonEmpty = (...vals) => vals.find(v => v && v.length>0) || '';
+
+                                  const global_bg = firstNonEmpty(pickBG('.q-page'), pickBG('body'));
+                                  const global_text = firstNonEmpty(pickColor('body'), '#e0e0e0');
+                                  const drawer_bg = firstNonEmpty(pickBG('.q-drawer'), '#1b1b1b');
+                                  const menus_bg = firstNonEmpty(pickBG('.q-card'), '#1d1d1d');
+                                  const border = firstNonEmpty(pickBorder('.q-card'), pickBG('.q-separator'), '#2a2a2a');
+                                  const input_bg = firstNonEmpty(pickBG('.q-field__control'), menus_bg);
+                                  const zebra_even_bg = firstNonEmpty(pickBG('.q-table tbody tr:nth-child(even) td'), menus_bg);
+                                  const hover_bg = firstNonEmpty(pickBG('.q-item:hover'), border, '#2a2a2a');
+                                  const table_footer_bg = firstNonEmpty(pickBG('.q-table__bottom'), menus_bg);
+                                  const rail_base = firstNonEmpty(pickVar('.pseudo-extend','--base-color'), '#303030');
+                                  const rail_border = firstNonEmpty(pickVar('.pseudo-extend','--border-color'), '#252525');
+                                  const fshape_bg = firstNonEmpty(pickBG('.f-shape'), '#171717');
+                                  const number_border = firstNonEmpty(pickBorder('.number-input'), border);
+                                  const link_color = firstNonEmpty(pickColor('.q-page a'), '#1d4ed8');
+
+                                  return JSON.stringify({
+                                    global_bg, global_text, drawer_bg,
+                                    card_bg: menus_bg, menu_bg: menus_bg,
+                                    border, input_bg, zebra_even_bg,
+                                    hover_bg, table_footer_bg,
+                                    rail_base, rail_border, fshape_bg,
+                                    number_border, link_color
+                                  });
+                                })();
+                                """
+                                try:
+                                    res = await ui.run_javascript(js, timeout=5.0)
+                                    if not res:
+                                        ui.notify('Could not read colors from preview.', position='bottom-right', type='warning', group=False)
+                                        return
+                                    data = json.loads(res)
+                                    # Populate unified menus from card/menu
+                                    if 'card_bg' in data:
+                                        m = data['card_bg']
+                                        if 'menus_bg' in inputs:
+                                            inputs['menus_bg'].set_value(m)
+                                            current['menus_bg'] = m
+                                    # Update all matching inputs and current working copy
+                                    for k, v in data.items():
+                                        if k in inputs:
+                                            inputs[k].set_value(v)
+                                        current[k] = v
+                                    await _apply_live_from_current()
+                                    ui.notify('Captured colors from preview.', position='bottom-right', type='positive', group=False)
                                 except Exception as ex:
-                                    ui.notify(f'Failed to activate custom theme: {ex}', position='bottom-right', type='negative', group=False)
-                            ui.button('Set as Active Theme', on_click=set_active)
-                            def preview():
-                                data = _collect_theme_data()
-                                from theme_utils import generate_custom_css
-                                css = generate_custom_css(data)
-                                # Add a style tag to preview without reload; latest added wins in cascade
-                                ui.add_head_html(f'<style id="custom-theme-preview">{css}</style>')
-                                ui.notify('Preview applied (not persisted).', position='bottom-right', type='info', group=False)
-                            ui.button('Preview', on_click=preview).props('flat')
+                                    ui.notify(f'Preview capture failed: {ex}', position='bottom-right', type='negative', group=False)
 
-                        ui.separator().classes('my-2')
+                            with ui.row().classes('w-full justify-end my-2'):
+                                ui.button('Use colors from preview', on_click=sync_from_preview).props('flat')
 
-                        # Named themes management
-                        with ui.row().classes('w-full items-center gap-3'):
-                            name_input = ui.input(placeholder='Theme name').classes('w-60')
-                            saved_select = ui.select(options=globals.layoutState.list_themes(), value=None, label='Saved themes').classes('w-60')
+                            # One-time seed of builder fields from the default (unset) dark theme
+                            # Only runs if active theme is plain 'dark' to avoid capturing overlay colors
+                            seeded_in_session = {'done': False}
 
-                            def refresh_saved_options():
-                                saved_select.set_options(globals.layoutState.list_themes())
-
-                            def save_as_named():
-                                name = (name_input.value or '').strip()
-                                if not name:
-                                    ui.notify('Please enter a theme name', position='bottom-right', type='warning', group=False)
+                            async def _seed_from_unset_dark():
+                                if seeded_in_session['done']:
                                     return
-                                data = _collect_theme_data()
                                 try:
-                                    globals.layoutState.save_named_theme(name, data)
-                                    refresh_saved_options()
-                                    saved_select.set_value(name)
-                                    ui.notify(f"Saved theme '{name}'", position='bottom-right', type='positive', group=False)
-                                except Exception as ex:
-                                    ui.notify(f'Failed to save theme: {ex}', position='bottom-right', type='negative', group=False)
+                                    theme_name = getattr(globals.layoutState, 'get_theme', lambda: 'dark')()
+                                    if theme_name == 'dark':
+                                        await sync_from_preview()  # populate inputs/current only; no persistence
+                                        seeded_in_session['done'] = True
+                                except Exception:
+                                    # Best-effort: ignore if iframe not ready yet
+                                    pass
 
-                            def load_selected():
-                                name = saved_select.value
-                                if not name:
-                                    ui.notify('Select a saved theme', position='bottom-right', type='info', group=False)
-                                    return
-                                data = globals.layoutState.get_named_theme(name)
-                                if not data:
-                                    ui.notify('Theme not found', position='bottom-right', type='negative', group=False)
-                                    return
-                                _populate_editor(data)
-                                ui.notify(f"Loaded '{name}' into editor", position='bottom-right', type='info', group=False)
+                            # Give the iframe a moment to load before capturing
+                            ui.timer(1.0, _seed_from_unset_dark, once=True)
 
-                            def delete_selected():
-                                name = saved_select.value
-                                if not name:
-                                    return ui.notify('Select a theme to delete', position='bottom-right', type='warning', group=False)
-                                try:
-                                    globals.layoutState.delete_named_theme(name)
-                                    refresh_saved_options()
-                                    saved_select.set_value(None)
-                                    ui.notify(f"Deleted theme '{name}'", position='bottom-right', type='positive', group=False)
-                                except Exception as ex:
-                                    ui.notify(f'Failed to delete theme: {ex}', position='bottom-right', type='negative', group=False)
+                            with ui.row().classes('w-full items-center gap-3'):
+                                name_input = ui.input(placeholder='Theme name').classes('w-60')
+                                saved_select = ui.select(options=globals.layoutState.list_themes(), value=None, label='Saved themes').classes('w-60')
 
-                            def export_selected():
-                                name = saved_select.value
-                                if not name:
-                                    return ui.notify('Select a theme to export', position='bottom-right', type='warning', group=False)
-                                data = globals.layoutState.get_named_theme(name)
-                                if not data:
-                                    return ui.notify('Theme not found', position='bottom-right', type='negative', group=False)
-                                payload = json.dumps({"name": name, "theme": data}, indent=2)
-                                ui.download(payload, filename=f"{name}.json")
+                                def refresh_saved_options():
+                                    saved_select.set_options(globals.layoutState.list_themes())
 
-                            def on_import(e):
-                                try:
-                                    content = e.content.read().decode('utf-8')
-                                    obj = json.loads(content)
-                                    # Support either {name, theme} or just theme dict
-                                    name = obj.get('name') if isinstance(obj, dict) else None
-                                    data = obj.get('theme') if isinstance(obj, dict) and 'theme' in obj else obj
-                                    if not isinstance(data, dict):
-                                        raise ValueError('Invalid theme file')
+                                def save_as_named():
+                                    name = (name_input.value or '').strip()
                                     if not name:
-                                        name = f"Imported Theme {len(globals.layoutState.list_themes())+1}"
-                                    globals.layoutState.save_named_theme(name, data)
-                                    refresh_saved_options()
-                                    saved_select.set_value(name)
-                                    ui.notify(f"Imported theme '{name}'", position='bottom-right', type='positive', group=False)
-                                except Exception as ex:
-                                    ui.notify(f'Import failed: {ex}', position='bottom-right', type='negative', group=False)
+                                        return ui.notify('Please enter a theme name', position='bottom-right', type='warning', group=False)
+                                    data = _collect_theme_data()
+                                    try:
+                                        logger.info(f"[ThemeBuilder] Save As named theme '{name}'")
+                                        globals.layoutState.save_named_theme(name, data)
+                                        refresh_saved_options()
+                                        saved_select.set_value(name)
+                                        ui.notify(f"Saved theme '{name}'", position='bottom-right', type='positive', group=False)
+                                    except Exception as ex:
+                                        ui.notify(f'Failed to save theme: {ex}', position='bottom-right', type='negative', group=False)
 
-                            ui.button('Save As', on_click=save_as_named)
-                            ui.button('Load to Editor', on_click=load_selected)
-                            ui.button('Delete', on_click=delete_selected)
-                            ui.button('Export', on_click=export_selected)
-                            ui.upload(on_upload=on_import).props('accept=.json').classes('')
+                                def load_selected():
+                                    name = saved_select.value
+                                    if not name:
+                                        return ui.notify('Select a saved theme', position='bottom-right', type='info', group=False)
+                                    data = globals.layoutState.get_named_theme(name)
+                                    if not data:
+                                        return ui.notify('Theme not found', position='bottom-right', type='negative', group=False)
+                                    _populate_editor(data)
+                                    try:
+                                        logger.info(f"[ThemeBuilder] Loaded named theme '{name}' into editor")
+                                    except Exception:
+                                        pass
+                                    ui.notify(f"Loaded '{name}' into editor", position='bottom-right', type='info', group=False)
 
-                ui.separator().classes('my-4')
+                                def delete_selected():
+                                    name = saved_select.value
+                                    if not name:
+                                        return ui.notify('Select a theme to delete', position='bottom-right', type='warning', group=False)
+                                    try:
+                                        globals.layoutState.delete_named_theme(name)
+                                        refresh_saved_options()
+                                        saved_select.set_value(None)
+                                        ui.notify(f"Deleted theme '{name}'", position='bottom-right', type='positive', group=False)
+                                    except Exception as ex:
+                                        ui.notify(f'Failed to delete theme: {ex}', position='bottom-right', type='negative', group=False)
 
-                # Clear All Backplanes Section
-                with ui.row().classes('w-full justify-center'):
-                    def clear_all_backplanes():
-                        """Clear all backplanes with confirmation dialog."""
-                        def on_confirm():
-                            globals.layoutState.clear_all_backplanes()
-                            ui.notify("All backplanes cleared successfully!",
-                                     position='bottom-right', type='positive', group=False)
-                            confirm_dialog.close()
+                                def export_selected():
+                                    name = saved_select.value
+                                    if not name:
+                                        return ui.notify('Select a theme to export', position='bottom-right', type='warning', group=False)
+                                    data = globals.layoutState.get_named_theme(name)
+                                    if not data:
+                                        return ui.notify('Theme not found', position='bottom-right', type='negative', group=False)
+                                    payload = json.dumps({"name": name, "theme": data}, indent=2)
+                                    ui.download(payload, filename=f"{name}.json")
 
-                        def on_cancel():
-                            confirm_dialog.close()
+                                def on_import(e):
+                                    try:
+                                        content = e.content.read().decode('utf-8')
+                                        obj = json.loads(content)
+                                        name = obj.get('name') if isinstance(obj, dict) else None
+                                        data = obj.get('theme') if isinstance(obj, dict) and 'theme' in obj else obj
+                                        if not isinstance(data, dict):
+                                            raise ValueError('Invalid theme file')
+                                        if not name:
+                                            name = f"Imported Theme {len(globals.layoutState.list_themes())+1}"
+                                        globals.layoutState.save_named_theme(name, data)
+                                        refresh_saved_options()
+                                        saved_select.set_value(name)
+                                        ui.notify(f"Imported theme '{name}'", position='bottom-right', type='positive', group=False)
+                                    except Exception as ex:
+                                        ui.notify(f'Import failed: {ex}', position='bottom-right', type='negative', group=False)
 
-                        with ui.dialog().props('persistent') as confirm_dialog, ui.card().classes('p-6'):
-                            ui.label('Clear All Backplanes?').classes('text-xl font-bold mb-4')
-                            ui.label('This will remove all backplanes and their drive assignments. This action cannot be undone.').classes('text-sm text-gray-400 mb-4')
-                            with ui.row().classes('w-full justify-center gap-4'):
-                                ui.button('Yes, Clear All', on_click=on_confirm).classes('border-solid border-2 border-red-500 text-red-500 px-6 py-2').props('flat')
-                                ui.button('Cancel', on_click=on_cancel).classes('border-solid border-2 border-[#ffdd00] text-white px-6 py-2').props('flat')
-                        confirm_dialog.open()
+                                ui.button('Save As', on_click=save_as_named)
+                                ui.button('Load to Editor', on_click=load_selected)
+                                ui.button('Delete', on_click=delete_selected)
+                                ui.button('Export', on_click=export_selected)
+                                ui.upload(on_upload=on_import).props('accept=.json').classes('')
 
-                    ui.button(
-                        'Clear All Backplanes',
-                        on_click=clear_all_backplanes,
-                        icon='delete_sweep'
-                    ).classes('bg-red-500 text-white px-6 py-2').props('flat')
-                    ui.label('Remove all backplanes and drive assignments').classes('text-xs text-gray-500 ml-2 self-center')
+                    with ui.tab_panel(backplanes_tab):
+                        ui.label('Backplanes').classes('text-lg font-semibold mb-2')
+                        with ui.row().classes('w-full items-center gap-3'):
+                            def clear_all_backplanes():
+                                def on_confirm():
+                                    globals.layoutState.clear_all_backplanes()
+                                    ui.notify("All backplanes cleared successfully!", position='bottom-right', type='positive', group=False)
+                                    confirm_dialog.close()
+                                def on_cancel():
+                                    confirm_dialog.close()
+                                with ui.dialog().props('persistent') as confirm_dialog, ui.card().classes('p-6'):
+                                    ui.label('Clear All Backplanes?').classes('text-xl font-bold mb-4')
+                                    ui.label('This will remove all backplanes and their drive assignments. This action cannot be undone.').classes('text-sm text-gray-400 mb-4')
+                                    with ui.row().classes('w-full justify-center gap-4'):
+                                        ui.button('Yes, Clear All', on_click=on_confirm).classes('border-solid border-2 border-red-500 text-red-500 px-6 py-2').props('flat')
+                                        ui.button('Cancel', on_click=on_cancel).classes('border-solid border-2 border-[#ffdd00] text-white px-6 py-2').props('flat')
+                                confirm_dialog.open()
+                            ui.button('Clear All Backplanes', on_click=clear_all_backplanes, icon='delete_sweep').classes('bg-red-500 text-white px-6 py-2').props('flat')
+                            ui.label('Remove all backplanes and drive assignments').classes('text-xs text-gray-500 self-center')
 
-                ui.separator().classes('mb-6')
+                    with ui.tab_panel(powerboard_tab):
+                        ui.label('Powerboard Information').classes('text-lg font-semibold mb-2')
+                        with ui.column().classes('w-full') as powerboard_container:
+                            create_powerboard_table()
+                        if 2 in globals.powerboardDict:
+                            with ui.row().classes('w-full items-center gap-2 mt-2'):
+                                ui.label('Swap powerboard positions:')
+                                ui_refs['pb_swap_switch'] = ui.switch(value=globals.layoutState.get_pb_swap(), on_change=lambda e: (globals.layoutState.set_pb_swap(e.value), swap_powerboard_positions()))
 
-                # Powerboard Information Section
-                with ui.column().classes('w-full') as powerboard_container:
-                    ui.label('Powerboard Information').classes('text-xl font-bold mb-4')
-                    create_powerboard_table()
-                if 2 in globals.powerboardDict:
-                    with ui.row().classes('w-full justify-center'):
-                        ui.label('Swap powerboard positions:').classes('flex justify-start items-center ')
-                        ui_refs['pb_swap_switch'] = ui.switch(value=globals.layoutState.get_pb_swap(), on_change=lambda e: (globals.layoutState.set_pb_swap(e.value), swap_powerboard_positions())).style('justify-content:end;')
+                    with ui.tab_panel(pwm_tab):
+                        ui.label('Default Fan Speed').classes('text-lg font-semibold mb-2')
+                        ui.label('These will be used when the system starts and persist between power cycles.').classes('text-sm text-gray-500 mb-2')
+                        create_pwm_settings()
 
-
-                ui.separator().classes('mb-6')
-
-                # PWM Settings Section
-                with ui.column().classes('w-full') as pwm_container:
-                    ui.label('Default Fan Speed').classes('text-xl font-bold mb-4')
-                    ui.label('These will be used when the system starts and persist between power cycles.').classes('text-sm text-gray-500 mb-2')
-                    create_pwm_settings()
-
-                # Additional spacing
-                ui.space().classes('h-2')
+            ui.space().classes('h-2')
