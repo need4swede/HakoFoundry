@@ -145,15 +145,20 @@ ask_yes_no() {
 
 # Function to discover block devices
 discover_block_devices() {
-    echo "      # Dynamically discovered block devices ($(date))"
     local count=0
-    lsblk -d -n -o NAME,SIZE | grep '^sd' | while read device size; do
+
+    if ! command -v lsblk >/dev/null 2>&1; then
+        return 0
+    fi
+
+    while read -r device size; do
+        [ -z "$device" ] && continue
+        if [ $count -eq 0 ]; then
+            echo "      # Dynamically discovered block devices ($(date))"
+        fi
         echo "      - \"/dev/$device:/dev/$device\"  # $size"
         count=$((count + 1))
-    done
-    if [ $count -eq 0 ]; then
-        echo "      # No block devices found ($(date))"
-    fi
+    done < <(lsblk -d -n -o NAME,SIZE 2>/dev/null | awk '$1 ~ /^sd/ {print $1 " " $2}')
 }
 
 # Function to discover serial devices
@@ -409,7 +414,10 @@ if ask_yes_no "Auto-scan for storage devices and serial ports?" "y"; then
     echo -e "${YELLOW}Scanning for devices...${NC}"
 
     # Show what we found
-    BLOCK_COUNT=$(lsblk -d -n -o NAME | grep '^sd' | wc -l)
+    BLOCK_COUNT=0
+    if command -v lsblk >/dev/null 2>&1; then
+        BLOCK_COUNT=$(lsblk -d -n -o NAME 2>/dev/null | awk '/^sd/ {count++} END {print count+0}')
+    fi
     SERIAL_COUNT=0
     for device in /dev/ttyACM* /dev/ttyUSB*; do
         if [ -e "$device" ]; then
@@ -419,12 +427,12 @@ if ask_yes_no "Auto-scan for storage devices and serial ports?" "y"; then
 
     echo "Found $BLOCK_COUNT block devices and $SERIAL_COUNT serial devices"
 
-    if [ $BLOCK_COUNT -gt 0 ]; then
+    if [ "$BLOCK_COUNT" -gt 0 ]; then
         echo "Block devices:"
-        lsblk -d -n -o NAME,SIZE | grep '^sd' | head -5 | while read device size; do
+        lsblk -d -n -o NAME,SIZE 2>/dev/null | awk '$1 ~ /^sd/ {print $1 " " $2}' | head -5 | while read -r device size; do
             echo "  - /dev/$device ($size)"
         done
-        if [ $BLOCK_COUNT -gt 5 ]; then
+        if [ "$BLOCK_COUNT" -gt 5 ]; then
             echo "  ... and $((BLOCK_COUNT - 5)) more"
         fi
     fi
@@ -526,11 +534,20 @@ EOF
 
 # Add devices section if autoscan is enabled
 if [ "$AUTOSCAN" = "true" ]; then
+    SERIAL_DEVICES="$(discover_serial_devices | grep '^[[:space:]]*-' || true)"
+    BLOCK_DEVICES="$(discover_block_devices | grep '^[[:space:]]*-' || true)"
+
     echo "" >> "$OUTPUT_FILE"
     echo "    # Device mapping" >> "$OUTPUT_FILE"
-    echo "    devices:" >> "$OUTPUT_FILE"
-    discover_serial_devices >> "$OUTPUT_FILE"
-    discover_block_devices >> "$OUTPUT_FILE"
+    if [ -n "$SERIAL_DEVICES" ] || [ -n "$BLOCK_DEVICES" ]; then
+        echo "    devices:" >> "$OUTPUT_FILE"
+        discover_serial_devices >> "$OUTPUT_FILE"
+        discover_block_devices >> "$OUTPUT_FILE"
+    else
+        echo "    # No compatible devices auto-detected on this host" >> "$OUTPUT_FILE"
+        echo "    # devices:" >> "$OUTPUT_FILE"
+        echo "    #   - \"/dev/ttyUSB0:/dev/ttyUSB0\"  # Add devices manually if needed" >> "$OUTPUT_FILE"
+    fi
 else
     echo "" >> "$OUTPUT_FILE"
     echo "    # Device mapping (disabled - run with autoscan to populate)" >> "$OUTPUT_FILE"
@@ -614,6 +631,16 @@ if [ "$ENV_SOURCE" = "file" ]; then
                 echo "PGID=$PGID" >> .env
             fi
             ENV_FILE_STATUS="updated"
+        else
+            # Remove stale overrides when user chooses container defaults
+            if grep -q '^PUID=' .env; then
+                sed_inplace '/^PUID=/d' .env
+                ENV_FILE_STATUS="updated"
+            fi
+            if grep -q '^PGID=' .env; then
+                sed_inplace '/^PGID=/d' .env
+                ENV_FILE_STATUS="updated"
+            fi
         fi
     fi
 fi
