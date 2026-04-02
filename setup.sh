@@ -22,7 +22,6 @@ sed_inplace() {
         sed -i '' "$@"
     fi
 }
-
 # Function to detect system architecture
 detect_architecture() {
     local arch=""
