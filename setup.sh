@@ -120,25 +120,26 @@ generate_secret() {
     echo "$random_bytes" | tr '+/' '-_' | tr -d '='
 }
 
-# Function to ask yes/no questions
+# Function to ask binary questions with labeled 1/2 options
 ask_yes_no() {
     local prompt="$1"
-    local default="$2"
+    local option_one="$2"
+    local option_two="$3"
+    local default="$4"
     local response
 
     while true; do
-        if [ "$default" = "y" ]; then
-            read -p "$prompt [Y/n]: " response
-            response=${response:-y}
-        else
-            read -p "$prompt [y/N]: " response
-            response=${response:-n}
-        fi
+        echo "$prompt"
+        echo "  1. $option_one"
+        echo "  2. $option_two"
+        echo ""
+        read -p "Select option (1/2) [$default]: " response
+        response=${response:-$default}
 
-        case $response in
-            [Yy]* ) return 0;;
-            [Nn]* ) return 1;;
-            * ) echo "Please answer yes or no.";;
+        case "$response" in
+            1|[Yy]|[Yy][Ee][Ss]) return 0;;
+            2|[Nn]|[Nn][Oo]) return 1;;
+            *) echo "Please select 1 or 2.";;
         esac
     done
 }
@@ -301,6 +302,7 @@ fi
 echo "How would you like to supply environment variables?"
 echo "  1. Use a .env file (recommended for portability)"
 echo "  2. Define variables directly in docker-compose.yml"
+echo ""
 read -p "Select option (1/2) [${DEFAULT_ENV_CHOICE}]: " ENV_CHOICE
 ENV_CHOICE=${ENV_CHOICE:-$DEFAULT_ENV_CHOICE}
 case $ENV_CHOICE in
@@ -336,7 +338,7 @@ echo ""
 STORAGE_TYPE=""
 STORAGE_VALUE=""
 
-if ask_yes_no "Use Docker volume instead of bind mount?" "n"; then
+if ask_yes_no "Use Docker volume instead of bind mount? " "Docker Volume" "Bind Mount" "1"; then
     STORAGE_TYPE="volume"
     read -p "Enter volume name [hako_config]: " STORAGE_VALUE
     STORAGE_VALUE=${STORAGE_VALUE:-hako_config}
@@ -368,7 +370,7 @@ USE_USER_CONFIG="false"
 PUID=""
 PGID=""
 
-if ask_yes_no "Configure user and group IDs (PUID/PGID)?" "y"; then
+if ask_yes_no "Configure user and group IDs (PUID/PGID)? " "Set PUID/PGID" "Skip (container defaults)" "1"; then
     USE_USER_CONFIG="true"
     echo ""
     echo "Current user ID: $(id -u)"
@@ -395,7 +397,7 @@ echo "  - false: Authentication required (more secure)"
 echo ""
 
 OPEN_ACCESS="false"
-if ask_yes_no "Enable open access (no authentication)?" "n"; then
+if ask_yes_no "Enable open access (no authentication)? " "Enable Open Access" "Require Authentication" "2"; then
     OPEN_ACCESS="true"
 fi
 echo "Open access: $OPEN_ACCESS"
@@ -408,7 +410,7 @@ echo "This includes all /dev/sd* devices and serial ports (/dev/ttyACM*, /dev/tt
 echo ""
 
 AUTOSCAN="false"
-if ask_yes_no "Auto-scan for storage devices and serial ports?" "y"; then
+if ask_yes_no "Auto-scan for storage devices and serial ports? " "Enable Auto-Scan" "Disable Auto-Scan" "1"; then
     AUTOSCAN="true"
     echo ""
     echo -e "${YELLOW}Scanning for devices...${NC}"
